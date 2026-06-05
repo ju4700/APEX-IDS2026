@@ -167,7 +167,7 @@ For detailed feature engineering recommendations, class imbalance strategies, an
 
 ## 8. Infrastructure Notes
 
-- **Collection server:** `synapstream` (Linux, x86-64)
+- **Collection server:** Fedora Server (Linux, x86-64)
 - **NetFlow sensor:** MikroTik RouterOS exporting NetFlow v5/v9 to nfcapd
 - **Honeypot log source:** `/var/log/honeypot_raw.log` (syslog from MikroTik firewall)
 - **Cron schedule:** `*/6 * * * *` with `flock`-based concurrency protection
