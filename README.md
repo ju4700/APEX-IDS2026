@@ -8,7 +8,7 @@
 
 APEX-IDS2026 is a research-grade network intrusion detection dataset built on live production network infrastructure. Unlike existing benchmark datasets (NSL-KDD, UNSW-NB15, CIC-IDS2017), which rely on synthetically generated attack traffic in controlled laboratory environments, APEX-IDS2026 captures genuine threat actor behavior from the live internet using a MikroTik router honeypot integrated with a continuous NetFlow collection pipeline.
 
-The central contribution of this dataset is its **3-Tier Deterministic Labeling Architecture**, which uses port-based correlation between honeypot event logs and nfcapd binary captures to produce ground-truth labels that carry a mathematically guaranteed 0% false positive rate for Tier 1 (Honeypot-Verified) flows. The pipeline operates autonomously via a 6-minute cron cycle, making this the first self-sustaining, longitudinal IDS dataset designed for continuous academic use.
+The central contribution of this dataset is its **5-Tier Deterministic Labeling Architecture**, which uses port-based correlation between honeypot event logs and nfcapd binary captures to produce ground-truth labels that carry a mathematically guaranteed 0% false positive rate for Tier 1 (Honeypot-Verified) flows. This is further validated by a Behavioral Anomaly Engine and Threat Intelligence integrations (AbuseIPDB), making this the first self-sustaining, longitudinal IDS dataset designed for continuous academic use.
 
 ---
 
@@ -26,42 +26,59 @@ APEX-IDS2026 addresses this gap by capturing flows from live threat actors and p
 
 ---
 
-## 2. The 3-Tier Confidence Architecture
+## 2. The 5-Tier Confidence Architecture
 
 ### 2.1 Tier 1 — Honeypot-Verified (Ground Truth)
 
 | Field | Value |
 |-------|-------|
-| `label` | `attack` |
+| `label` | `Attack_Verified` |
 | `confidence` | `honeypot-verified` |
 | `evidence_source` | `honeypot:port-match` |
 | **False Positive Rate** | **0%** |
 
-A flow is assigned Tier 1 if and only if two conditions are simultaneously satisfied:
-
-1. The flow's **Source IP** is present in the parsed MikroTik honeypot event log — meaning this IP was caught attacking the honeypot at some point during the same 6-minute time window.
-2. The flow's **Destination Port** exactly matches the port that specific IP targeted in the honeypot log entry.
-
-This uses **Port-Based Matching**, a technique developed specifically to remain immune to NAT translation and interface-capture asymmetries that would otherwise cause IP-based matching to fail silently. The label is not an inference — it is a direct, deterministic consequence of two independently logged facts.
+A flow is assigned Tier 1 if its **Source IP** attacked the honeypot in the same time window, AND its **Destination Port** exactly matches the port targeted in the honeypot log entry. The label is a direct, deterministic consequence of hardware-level logging.
 
 ### 2.2 Tier 2 — Attacker-Associated (Peripheral Reconnaissance)
 
 | Field | Value |
 |-------|-------|
-| `label` | `suspicious` |
+| `label` | `Attack_Associated` |
 | `confidence` | `attacker-associated` |
 | `evidence_source` | `honeypot:port-mismatch` |
 
-A flow is Tier 2 if its Source IP is a confirmed attacker (Tier 1 criteria satisfied on another port) but its Destination Port does not match the honeypot-logged port. These flows represent the lateral reconnaissance activity of a confirmed threat actor probing other services on the network — the behavioral fingerprint that precedes and follows a targeted attack. This tier is unique to APEX-IDS2026 and has no equivalent in existing datasets.
+A flow is Tier 2 if its Source IP is a confirmed attacker (Tier 1 criteria satisfied on another port) but its Destination Port does not match the honeypot-logged port. These flows represent the lateral reconnaissance activity of a confirmed threat actor.
 
-### 2.3 Tier 3 — Normal-Sampled (Benign Baseline)
+### 2.3 Tier 3 — Unverified (Threat-Intel Flagged or Behavioral Anomaly)
 
 | Field | Value |
 |-------|-------|
-| `label` | `normal` |
-| `confidence` | `normal-sampled` |
+| `label` | `Unverified` |
+| `confidence` | `threat-intel-flagged` OR `behavioral-anomaly` |
 
-A stratified random sample of 5,000 flows per 6-minute window from Source IPs with zero honeypot interactions in that window. This constitutes the benign class for supervised learning tasks.
+Flows that did *not* hit the honeypot but were flagged by either:
+1. **AbuseIPDB Threat Intelligence** (Score >= 50)
+2. **Behavioral Anomaly Engine** (Single-packet TCP scans, SYN-only probes, Port sweeps, or Network sweeps)
+
+This tier catches "stealth" scanners and known-bad IPs that would otherwise pollute the benign dataset.
+
+### 2.4 Tier 4 — Benign_Verified (Safe Destination)
+
+| Field | Value |
+|-------|-------|
+| `label` | `Benign_Verified` |
+| `confidence` | `destination-verified` |
+
+Flows targeting known-safe internal subnets or specific services (e.g., internal DNS, IPTV streams) that have zero threat intelligence flags and zero behavioral anomalies.
+
+### 2.5 Tier 5 — Benign_Assumed (Clean Baseline)
+
+| Field | Value |
+|-------|-------|
+| `label` | `Benign_Assumed` |
+| `confidence` | `no-threat-indicators` |
+
+Flows with no honeypot interaction, no threat intelligence flags, no behavioral anomalies, but destined for general unverified IP space.
 
 ---
 
@@ -78,7 +95,7 @@ A stratified random sample of 5,000 flows per 6-minute window from Source IPs wi
 | Attack types observed | 300+ distinct port scan and service probe categories |
 | Named attack types | SSH-Brute, RDP-Brute, FTP-Brute, HTTP-Probe, HTTPS-Probe, MySQL-Brute, Redis-Probe, MongoDB-Probe, and 15+ others |
 | MITRE ATT&CK coverage | T1046, T1110, T1110.001, T1190, T1021.002 |
-| Output columns per flow | 30+ |
+| Output columns per flow | 33 (including country code & threat intel) |
 | Labeling latency | < 6 minutes from flow capture to labeled CSV |
 
 ---
@@ -132,6 +149,8 @@ Each labeled CSV contains 30+ features. A complete column reference is in [DATAS
 
 **Categorical features:** `src_port_category`, `dst_port_category`, `flow_duration_class`
 
+**Validation layers:** `threat_intel_score`, `country` (ISO Code), `behavioral_flags`
+
 **Label columns:** `label`, `attack_type`, `attack_category`, `mitre_technique`, `mitre_tactic`, `confidence`, `evidence_source`, `flow_file`
 
 ---
@@ -145,10 +164,10 @@ Combine Tier 1 (`_attacks.csv`) as the positive class with Tier 3 (`_normal.csv`
 Use Tier 1 with the `attack_type` column as the target variable. This supports fine-grained classification across brute-force, service probe, web attack, and reconnaissance categories.
 
 **Threat-Hunting and Anomaly Detection:**
-Use all three tiers with `label` as a 3-class target (`attack`, `suspicious`, `normal`). This configuration trains models to detect the pre-attack reconnaissance signature of confirmed threat actors — a capability not available in any existing dataset.
+Use all tiers with `label` as a 5-class target. This configuration trains models to detect the pre-attack reconnaissance signature of confirmed threat actors and identify stealthy scanners caught by behavioral rules.
 
-**Temporal Analysis:**
-Files are organized chronologically by date directory. Researchers can train on earlier windows and evaluate on later ones for realistic temporal generalization testing.
+**Geographic Analysis:**
+Utilize the `country` column to map the geographic origin of verified attacks compared to benign traffic.
 
 For detailed feature engineering recommendations, class imbalance strategies, and baseline benchmarks, refer to [MACHINE_LEARNING_GUIDE.md](docs/MACHINE_LEARNING_GUIDE.md).
 
