@@ -1,0 +1,12 @@
+# Ignore the Machine Learning virtual environment
+Machine Learnign/venv/
+
+# Ignore the data folder (even though we anonymized it, the full 3.2M dataset should definitely never be pushed)
+Machine Learnign/data/
+
+# Ignore the compiled ML models and output plots
+Machine Learnign/output/
+
+# Ignore compiled python bytecode
+__pycache__/
+*.pyc
