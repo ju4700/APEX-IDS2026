@@ -39,6 +39,8 @@ Our first test run using a small sample (7,142 rows) achieved an incredible base
 - **False Positives**: 30 (Normal traffic flagged as attack)
 - **False Negatives**: 21 (Attacks missed)
 
+![Baseline Confusion Matrix](output/confusion_matrix.png)
+
 **Top Predictive Features:**
 1. `bytes` (31.3%)
 2. `bytes_per_packet` (17.5%)

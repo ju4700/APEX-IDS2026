@@ -86,19 +86,21 @@ Flows with no honeypot interaction, no threat intelligence flags, no behavioral 
 
 | Property | Value |
 |----------|-------|
-| Collection period | June – August 2026 (ongoing) |
+| Collection period | June – August 2026 (90 days, ongoing) |
 | Time window resolution | ~6 minutes per file |
+| Flows per window (total) | 465,000 – 660,000 |
+| Tier 1 flows per window | 700 – 1,200 (verified attacks) |
+| Tier 2 flows per window | 800 – 1,100 (attacker reconnaissance) |
+| Tier 3 flows per window | 5,000 (normal sample) |
 | Total Honeypot Hits | 87,545+ |
 | Unique Attacker IPs | 5,375+ |
 | Total Labeled Flows | 3,207,546+ flows |
-| Tier 1 (Verified Attacks) | 1,291,598 flows |
-| Tier 2 (Attacker Associated) | 380,948 flows |
-| Tier 3 (Normal Sampled) | 1,535,000 flows |
 | Dataset Class Balance | 52% Malicious / 48% Normal |
 | Attack types observed | 300+ distinct port scan and service probe categories |
-| Named attack types | Telnet-Brute, SSH-Brute, RDP-Brute, HTTP-Probe, HTTPS-Probe, SMB-Probe, and 15+ others |
+| Named attack types | Telnet-Brute, SSH-Brute, RDP-Brute, HTTP-Probe, HTTPS-Probe, SMB-Probe, MySQL-Brute, Redis-Probe, MongoDB-Probe, and 15+ others |
 | MITRE ATT&CK coverage | T1046, T1110, T1110.001, T1190, T1021.002 |
 | Output columns per flow | 33 (including country code & threat intel) |
+| Labeling latency | < 6 minutes from flow capture to labeled CSV |
 
 ---
 
@@ -188,7 +190,7 @@ For detailed feature engineering recommendations, class imbalance strategies, an
 
 ## 8. Infrastructure Notes
 
-- **Collection server:** Fedora Server (Linux, x86-64)
+- **Collection server:** `synapstream` (Linux, x86-64)
 - **NetFlow sensor:** MikroTik RouterOS exporting NetFlow v5/v9 to nfcapd
 - **Honeypot log source:** `/var/log/honeypot_raw.log` (syslog from MikroTik firewall)
 - **Cron schedule:** `*/6 * * * *` with `flock`-based concurrency protection
