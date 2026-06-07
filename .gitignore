@@ -4,5 +4,7 @@ Machine Learnign/output/*
 Machine Learnign/output/*.pkl
 !Machine Learnign/output/*.png
 
+/paper
+
 __pycache__/
 *.pyc
