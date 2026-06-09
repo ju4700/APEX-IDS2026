@@ -2,7 +2,15 @@ import time
 import joblib
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+# Use XGBoost for GPU‑accelerated training when a compatible GPU is present.
+# The wheel installed (`xgboost‑3.2.0‑cp313‑cp313‑win_amd64.whl`) includes GPU support
+# if the system has a CUDA‑enabled GPU (e.g., RTX 5060). We fall back to the CPU
+# implementation if GPU initialization fails.
+try:
+    from xgboost import XGBClassifier
+    _XGBOOST_AVAILABLE = True
+except Exception:
+    _XGBOOST_AVAILABLE = False
 
 from data_loader import load_and_combine_data
 from feature_engineering import engineer_features
@@ -34,27 +42,50 @@ def main():
     print(f"Training shapes   - X: {X_train.shape}, y: {y_train.shape}")
     print(f"Testing shapes    - X: {X_test.shape}, y: {y_test.shape}")
 
-    # 4. Initialize Model
-    # Random Forest is highly resilient to overfitting and handles unscaled network data perfectly.
-    # n_estimators=100 is a standard robust default. n_jobs=-1 uses all CPU cores for speed.
-    rf_model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1, verbose=1)
+    # 4. Initialize Model – prefer XGBoost with GPU if possible
+    if _XGBOOST_AVAILABLE:
+        try:
+            print("Initializing XGBoost classifier with GPU support (tree_method='gpu_hist')...")
+            xgb_model = XGBClassifier(
+                n_estimators=300,
+                max_depth=8,
+                learning_rate=0.1,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                objective='binary:logistic',
+                eval_metric='logloss',
+                tree_method='gpu_hist',  # GPU accelerated histogram algorithm
+                random_state=42,
+                n_jobs=-1,
+                verbosity=1,
+            )
+            model = xgb_model
+        except Exception as e:
+            print(f"[!] GPU XGBoost initialization failed ({e}); falling back to CPU RandomForest.")
+            from sklearn.ensemble import RandomForestClassifier
+            model = RandomForestClassifier(n_estimators=200, random_state=42, n_jobs=-1, verbose=1)
+    else:
+        print("XGBoost not available – using CPU RandomForest as fallback.")
+        from sklearn.ensemble import RandomForestClassifier
+        model = RandomForestClassifier(n_estimators=200, random_state=42, n_jobs=-1, verbose=1)
 
     # 5. Train Model
     print("\nTraining Random Forest model (this may take a minute depending on data size)...")
     start_time = time.time()
-    rf_model.fit(X_train, y_train)
+    model.fit(X_train, y_train)
     duration = time.time() - start_time
     print(f"Training completed in {duration:.2f} seconds.")
 
     # 6. Predict on Test Set
     print("Predicting on the unseen Test set...")
-    y_pred = rf_model.predict(X_test)
+    y_pred = model.predict(X_test)
 
     # 7. Evaluate
-    evaluate_model(y_test, y_pred, X.columns, rf_model)
+    evaluate_model(y_test, y_pred, X.columns, model)
 
     # 8. Save Model
-    model_path = OUTPUT_DIR / "apex_ids_rf_model.pkl"
+    # Preserve the original filename for compatibility, but note the model may now be XGBoost.
+    model_path = OUTPUT_DIR / "apex_ids_model.pkl"
     print(f"\nSaving trained model to disk: {model_path}")
     joblib.dump(rf_model, model_path)
     print("Model saved successfully. Ready for real-time deployment!")

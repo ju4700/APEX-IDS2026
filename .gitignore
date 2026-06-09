@@ -3,8 +3,11 @@ Machine Learnign/data/
 Machine Learnign/output/*
 Machine Learnign/output/*.pkl
 !Machine Learnign/output/*.png
+Machine Learnign/data/parquet/*
 
 /paper
+/parquet
+/PipeLine
 
 __pycache__/
 *.pyc
