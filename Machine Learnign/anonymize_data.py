@@ -13,7 +13,7 @@ def anonymize_ip(ip):
     return hashlib.sha256(str(ip).encode()).hexdigest()[:12]
 
 def anonymize_files():
-    csv_files = list(DATA_DIR.glob("*.csv"))
+    csv_files = list(DATA_DIR.rglob("*.csv"))
     
     if not csv_files:
         print("No CSV files found in the data/ directory.")

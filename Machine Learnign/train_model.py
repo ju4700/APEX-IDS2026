@@ -87,7 +87,7 @@ def main():
     # Preserve the original filename for compatibility, but note the model may now be XGBoost.
     model_path = OUTPUT_DIR / "apex_ids_model.pkl"
     print(f"\nSaving trained model to disk: {model_path}")
-    joblib.dump(rf_model, model_path)
+    joblib.dump(model, model_path)
     print("Model saved successfully. Ready for real-time deployment!")
 
 if __name__ == "__main__":
