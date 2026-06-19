@@ -1,6 +1,6 @@
 <center>
 
-# APEX-IDS2026: The 1.8 Billion Flow Ground-Truth Cybersecurity Dataset
+# APEX-IDS2026: The 18 Billion Flow Ground-Truth Cybersecurity Dataset
 **Enterprise Data Card & Technical Specification**
 
 **Version:** 1.0 (Commercial Evaluation Edition) &nbsp; | &nbsp; **Date:** June 2026<br>
@@ -13,7 +13,7 @@
 <div style="text-align: justify;">
 
 > [!IMPORTANT]
-> **Executive Summary:** APEX-IDS2026 represents a paradigm shift in machine learning cybersecurity data. Legacy datasets (e.g., UNSW-NB15, CIC-IDS2017) rely heavily on simulated, decade-old laboratory attacks or heuristic statistical labeling that introduces massive false-positive noise. **APEX-IDS2026 captures 1.8 Billion rows of live, modern botnet traffic from a Tier-2 South Asian ISP network with absolute physical ground truth established via hardware honeypot correlation.** This dataset guarantees zero false-positives for its primary attack classes, offering cybersecurity vendors the ability to train next-generation IDS and ML models on authentic 2026 threat landscapes.
+> **Executive Summary:** APEX-IDS2026 represents a paradigm shift in machine learning cybersecurity data. Legacy datasets (e.g., UNSW-NB15, CIC-IDS2017) rely heavily on simulated, decade-old laboratory attacks or heuristic statistical labeling that introduces massive false-positive noise. **APEX-IDS2026 captures over 18 Billion rows of live, modern botnet traffic from a Tier-2 South Asian ISP network with absolute physical ground truth established via hardware honeypot correlation.** This dataset guarantees zero false-positives for its primary attack classes, offering cybersecurity vendors the ability to train next-generation IDS and ML models on authentic 2026 threat landscapes without the pitfall of shortcut-learning.
 
 ---
 
@@ -25,7 +25,7 @@ APEX-IDS2026 does not use simulated traffic generators. It is collected from the
 - **Collection Point:** ISP Edge/Core Router (South Asia).
 - **Format:** Extended NetFlow v9 / IPFIX exported directly to a high-throughput `nfcapd` collector.
 - **Rotation Interval:** 5-minute fixed time windows, ensuring high temporal fidelity and preventing flow-record truncation.
-- **Volume:** ~800,000 flows captured per 5-minute window, scaling to over 1.8 Billion flows over the full continuous collection period.
+- **Volume:** ~800,000 flows captured per 5-minute window, scaling to **over 18 Billion flows** over the full continuous 90-day collection period.
 
 ### 1.2 Physical Ground Truth (The Honeypot Catalyst)
 The defining feature of APEX-IDS2026 is its physical ground-truth correlation engine:
@@ -40,7 +40,7 @@ The defining feature of APEX-IDS2026 is its physical ground-truth correlation en
 
 ## 2. The 5-Tier Deterministic Labeling Strategy
 
-Every single flow in the 1.8 Billion record dataset is passed through a strict decision tree and categorized into one of five tiers. 
+Every single flow in the 18 Billion record dataset is passed through a strict decision tree and categorized into one of five tiers. 
 
 | Tier | Label | Confidence Level | Validation Methodology |
 |---|---|---|---|
@@ -76,10 +76,10 @@ The dataset provides **34 deeply engineered features** per flow, formatted perfe
 
 ### 4.1 Flow Structural Metrics
 These metrics represent the raw physical properties of the network connection.
-- `flow_start`: ISO-8601 Timestamp of the flow initiation (UTC).
+- `flow_start`: ISO-8601 Timestamp of the flow initiation (UTC/Local).
 - `duration_s`: Total active time of the flow in seconds.
 - `protocol`: Transport protocol string (`TCP`, `UDP`, `ICMP`, `ICMPv6`).
-- `src_ip` / `dst_ip`: Cryptographically anonymized IP routing addresses.
+- `src_ip` / `dst_ip`: IP routing addresses (anonymized for internal traffic).
 - `src_port` / `dst_port`: Network ports.
 - `packets`: Total number of packets transferred.
 - `bytes`: Total payload and header volume in bytes.
@@ -97,18 +97,19 @@ Unlike legacy datasets that group flags into a single arbitrary hex string, APEX
 - `flag_syn`, `flag_ack`, `flag_fin`, `flag_rst`, `flag_psh`, `flag_urg` (Binary 0/1).
 
 ### 4.4 Threat Taxonomy & MITRE ATT&CK Mappings
-- `label`: Primary target variable (`Attack_Verified`, `Benign_Verified`, etc.).
-- `attack_type`: Specific vector identified (e.g., `SSH-Brute`, `HTTP-Probe`, `MySQL-Brute`).
+- `label`: Primary target variable (`Attack_Verified`, `Attack_Associated`, `Benign_Verified`, `Benign_Assumed`, `Unverified`).
+- `attack_type`: Specific vector identified (e.g., `SSH-Brute`, `HTTP-Probe`, `Port-8081-Scan`).
 - `attack_category`: Broader grouping (`reconnaissance`, `brute-force`, `lateral-movement`).
 - `mitre_technique`: Direct mapping to the MITRE ATT&CK framework (e.g., `T1046` Network Service Discovery).
 - `mitre_tactic`: MITRE parent tactic (e.g., `discovery`, `credential-access`).
-- `confidence`: The semantic tier-level confidence (e.g., `multi-layer-verified`).
+- `confidence`: The semantic tier-level confidence (e.g., `multi-layer-verified`, `attacker-associated`).
 - `evidence_source`: The system rule that applied the label (e.g., `honeypot:port-match`, `safe-dest:Cloudflare`).
 
 ### 4.5 Contextual Threat Intelligence (Enrichment Layer)
 - `threat_intel_score`: Reputation score (0-100) pulled dynamically via the AbuseIPDB API.
-- `country`: GeoIP mapping of the attacker.
+- `country`: GeoIP mapping of the attacker (ISO 3166-1 alpha-2).
 - `behavioral_flags`: Heuristic tags capturing aggressive behaviors like `scan-like:port-sweep(10)` or `scan-like:single-pkt-tcp`.
+- `flow_file`: The origin manifest file to maintain perfect auditability back to the raw `nfcapd` data.
 
 ---
 
@@ -120,7 +121,7 @@ When evaluating the dataset, data scientists must be aware that modern 2026 botn
    Millions of `Attack_Verified` rows represent highly distributed, automated SYN Scans. Because they consist of a single packet meant to test a port, their `duration_s` is exactly `00:00:00.000`. Consequently, `bytes_per_sec` and `packets_per_sec` are recorded as `0` to prevent division-by-zero errors. Furthermore, because the TCP handshake is never completed, `flag_ack` and `flag_fin` will be `0`, while `flag_syn` will be `1`. **Models must learn that a 0-second, SYN-only flow is a strong indicator of reconnaissance.**
 
 2. **Threat Intelligence API Rate Limits:** 
-   To maintain processing speed across 1.8 Billion flows, the pipeline utilizes API limits. If the daily Threat Intelligence quota is exhausted during a massive DDoS event, `threat_intel_score` and `country` will gracefully fallback to empty/null values.
+   To maintain processing speed across 18 Billion flows, the pipeline utilizes API limits. If the daily Threat Intelligence quota is exhausted during a massive DDoS event, `threat_intel_score` and `country` will gracefully fallback to empty/null values.
 
 3. **Behavioral Flag Optimization:** 
    `behavioral_flags` are intentionally bypassed for `Attack_Verified` flows. Because their malicious intent is already physically proven by hitting the honeypot, the compute resources are saved, resulting in empty values for this column on Tier 1 data.
@@ -129,9 +130,11 @@ When evaluating the dataset, data scientists must be aware that modern 2026 botn
 
 ## 6. Technical Distribution & Integration
 
-APEX-IDS2026 is engineered specifically for modern Big Data and MLOps pipelines.
+APEX-IDS2026 is engineered specifically for modern Big Data and MLOps pipelines. Managing 18 Billion flows (2-3 Terabytes of data) requires state-of-the-art analytical tools.
+
 - **Format:** `Apache Parquet` (via PyArrow).
 - **Compression:** Snappy compression, resulting in a **90% reduction in disk footprint** compared to raw CSVs.
+- **Analytics Engine (DuckDB):** The dataset is designed to be queried using **DuckDB**, an open-source, in-process SQL OLAP database. DuckDB allows data scientists to run complex SQL aggregations on thousands of `.parquet` files directly from disk with zero memory overhead and zero server cost.
 - **Integration:** Columnar vectorization ensures the data can be loaded directly into Pandas, Polars, Apache Spark, or Dask with strict schema typing (eliminating arbitrary `object` to `string` parsing errors).
 
 ---
@@ -140,7 +143,7 @@ APEX-IDS2026 is engineered specifically for modern Big Data and MLOps pipelines.
 
 The dataset is strictly compliant with privacy regulations regarding network interception:
 - **Zero Payload Inspection:** Only Layer 3/Layer 4 metadata (NetFlow headers) is captured. No packet payloads, user data, passwords, or PII are recorded.
-- **Cryptographic IP Anonymization:** A dedicated processing layer (`anonymize_data.py`) replaces all internal ISP client IP addresses with consistent cryptographic hashes (e.g., SHA-256 with salt). This protects local user privacy while perfectly preserving the mathematical IP relationship graphs required for Graph Neural Network (GNN) and topological ML training.
+- **Cryptographic IP Anonymization:** A dedicated processing layer replaces all internal ISP client IP addresses with consistent cryptographic hashes. This protects local user privacy while perfectly preserving the mathematical IP relationship graphs required for Graph Neural Network (GNN) and topological ML training.
 
 <br>
 <i>For commercial licensing, enterprise evaluation samples, or inquiries regarding the Live Threat Intelligence Feed, please contact the APEX-IDS Data Distribution Team.</i>
