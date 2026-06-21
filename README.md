@@ -124,13 +124,9 @@ Combine Tier 1 (`_attacks.csv`) as the positive class with Tier 3 (`_normal.csv`
 **Multi-Class Attack Classification:**
 Use Tier 1 with the `attack_type` column as the target variable. This supports fine-grained classification across brute-force, service probe, web attack, and reconnaissance categories.
 
-| Document | Purpose |
-|----------|---------|
-| [DATASET_SCHEMA.md](docs/DATASET_SCHEMA.md) | Full column reference, MITRE ATT&CK mapping table, and comparison against existing datasets |
-| [PIPELINE_ARCHITECTURE.md](docs/PIPELINE_ARCHITECTURE.md) | Technical specification of the 5-stage automated pipeline |
-| [LITERATURE_REVIEW.md](docs/LITERATURE_REVIEW.md) | Academic evaluation of existing NIDS datasets and justification of APEX-IDS2026 |
-| [RESEARCH_JOURNAL.md](docs/RESEARCH_JOURNAL.md) | Chronological development log covering hypotheses, architectural challenges, and resolutions |
-| [MACHINE_LEARNING_GUIDE.md](docs/MACHINE_LEARNING_GUIDE.md) | Guidance for training and evaluating machine learning models on APEX-IDS2026 |
+For detailed feature engineering recommendations, class imbalance strategies, and baseline benchmarks, refer to [MACHINE_LEARNING_GUIDE.md](docs/MACHINE_LEARNING_GUIDE.md).
+
+For a comprehensive academic evaluation of existing NIDS datasets (NSL-KDD, UNSW-NB15, CIC-IDS2017, LUFlow) and a structural justification for APEX-IDS2026, refer to [LITERATURE_REVIEW.md](docs/LITERATURE_REVIEW.md).
 
 ---
 
