@@ -22,6 +22,8 @@ The machine learning community in cybersecurity has long depended on datasets th
 
 Furthermore, analyzing big data network telemetry usually requires massive Apache Spark clusters. Attempting to load millions of flows into Pandas results in catastrophic Out-of-Memory (OOM) crashes. APEX-IDS2026 addresses these gaps by capturing real threat actors and providing a highly optimized **DuckDB Partitioned Parquet** architecture that scales to 18 Billion flows on a single workstation.
 
+While legacy datasets like UNSW-NB15 and CIC-IDS2017 suffer from synthetic simulation artifacts and bad design smells, and existing real-world honeypot datasets like Kyoto 2006+ and LUFlow lack explicit multi-class attack taxonomies, APEX-IDS2026 bridges this gap. By utilizing a 90-day live ISP collection period to address concept drift, integrating LUFlow's state-of-the-art Inter-Arrival Time and Payload Entropy features, and introducing a 5-Tier Deterministic Labeling Architecture for ground-truth multi-class labeling, APEX-IDS2026 provides a truly evasion-resistant, real-world benchmark.
+
 ---
 
 ## 2. The 5-Tier Confidence Architecture

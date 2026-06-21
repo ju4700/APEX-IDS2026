@@ -14,6 +14,8 @@
 
 > [!IMPORTANT]
 > **Executive Summary:** APEX-IDS2026 represents a paradigm shift in machine learning cybersecurity data. Legacy datasets (e.g., UNSW-NB15, CIC-IDS2017) rely heavily on simulated, decade-old laboratory attacks or heuristic statistical labeling that introduces massive false-positive noise. **APEX-IDS2026 captures over 18 Billion rows of live, modern botnet traffic from a Tier-2 South Asian ISP network with absolute physical ground truth established via hardware honeypot correlation.** This dataset guarantees zero false-positives for its primary attack classes, offering cybersecurity vendors the ability to train next-generation IDS and ML models on authentic 2026 threat landscapes without the pitfall of shortcut-learning.
+>
+> While legacy datasets like UNSW-NB15 and CIC-IDS2017 suffer from synthetic simulation artifacts and bad design smells, and existing real-world honeypot datasets like Kyoto 2006+ and LUFlow lack explicit multi-class attack taxonomies, APEX-IDS2026 bridges this gap. By utilizing a 90-day live ISP collection period to address concept drift, integrating LUFlow's state-of-the-art Inter-Arrival Time and Payload Entropy features, and introducing a 5-Tier Deterministic Labeling Architecture for ground-truth multi-class labeling, APEX-IDS2026 provides a truly evasion-resistant, real-world benchmark.
 
 ---
 
