@@ -5,10 +5,11 @@ Machine Learnign/output/*.pkl
 !Machine Learnign/output/*.png
 Machine Learnign/data/parquet/**
 Machine Learnign/parquet/**
+Mikrotik Scripts/**
 
 /paper
 /parquet
 /PipeLine
-
+.env
 __pycache__/
 *.pyc
