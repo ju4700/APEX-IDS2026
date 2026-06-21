@@ -72,7 +72,7 @@ Contains **Tier 3 (`Benign_Verified`)** and **Tier 5 (`Benign_Assumed`)** flows.
 
 ## 4. Comprehensive Feature Dictionary (Schema)
 
-The dataset provides **34 deeply engineered features** per flow, formatted perfectly for ML vectorization.
+The dataset provides **38 deeply engineered features** per flow, formatted perfectly for ML vectorization.
 
 ### 4.1 Flow Structural Metrics
 These metrics represent the raw physical properties of the network connection.
@@ -96,7 +96,15 @@ Rates are pre-calculated to allow models to detect high-velocity volumetric atta
 Unlike legacy datasets that group flags into a single arbitrary hex string, APEX-IDS2026 unpacks them into individual binary features for direct model ingestion:
 - `flag_syn`, `flag_ack`, `flag_fin`, `flag_rst`, `flag_psh`, `flag_urg` (Binary 0/1).
 
-### 4.4 Threat Taxonomy & MITRE ATT&CK Mappings
+### 4.4 Deep Packet Inspection (Zeek DPI Metrics)
+Unlike standard NetFlow datasets which lack Layer 7 context, APEX-IDS2026 integrates a parallel Zeek DPI engine (via a TZSP mirror). To circumvent MikroTik DNAT routing (which rewrites destination IPs) and time drift, Zeek data is merged into NetFlow deterministically using a **NAT-immune 5-minute time bucket** on `(src_ip, dst_port, protocol)`.
+- `iat_mean`: The mean inter-arrival time (IAT) of packets within the flow (in seconds). Crucial for identifying automated C2 cadence versus human interaction.
+- `iat_std`: The standard deviation of the inter-arrival time.
+- `payload_entropy`: Shannon entropy (0.0 to 8.0) of the connection payload. High entropy (>7.0) strongly indicates encrypted C2 channels, obfuscated data, or packed malware payloads.
+- `dns_query`: The specific domain name queried, allowing models to correlate malicious IP infrastructure with dynamic DNS or DGA (Domain Generation Algorithms).
+- `init_win_bytes_forward`: The initial TCP window size requested by the sender. Valuable for OS-fingerprinting and distinguishing scanner frameworks (like Nmap or Masscan) from legitimate browsers.
+
+### 4.5 Threat Taxonomy & MITRE ATT&CK Mappings
 - `label`: Primary target variable (`Attack_Verified`, `Attack_Associated`, `Benign_Verified`, `Benign_Assumed`, `Unverified`).
 - `attack_type`: Specific vector identified (e.g., `SSH-Brute`, `HTTP-Probe`, `Port-8081-Scan`).
 - `attack_category`: Broader grouping (`reconnaissance`, `brute-force`, `lateral-movement`).
@@ -105,7 +113,7 @@ Unlike legacy datasets that group flags into a single arbitrary hex string, APEX
 - `confidence`: The semantic tier-level confidence (e.g., `multi-layer-verified`, `attacker-associated`).
 - `evidence_source`: The system rule that applied the label (e.g., `honeypot:port-match`, `safe-dest:Cloudflare`).
 
-### 4.5 Contextual Threat Intelligence (Enrichment Layer)
+### 4.6 Contextual Threat Intelligence (Enrichment Layer)
 - `threat_intel_score`: Reputation score (0-100) pulled dynamically via the AbuseIPDB API.
 - `country`: GeoIP mapping of the attacker (ISO 3166-1 alpha-2).
 - `behavioral_flags`: Heuristic tags capturing aggressive behaviors like `scan-like:port-sweep(10)` or `scan-like:single-pkt-tcp`.
@@ -118,7 +126,7 @@ Unlike legacy datasets that group flags into a single arbitrary hex string, APEX
 When evaluating the dataset, data scientists must be aware that modern 2026 botnets behave differently than the threats of 2015. **Certain "missing" or "zero" values in this dataset are critical forensic features.**
 
 1. **The Instantaneous SYN Scan Phenomenon:** 
-   Millions of `Attack_Verified` rows represent highly distributed, automated SYN Scans. Because they consist of a single packet meant to test a port, their `duration_s` is exactly `00:00:00.000`. Consequently, `bytes_per_sec` and `packets_per_sec` are recorded as `0` to prevent division-by-zero errors. Furthermore, because the TCP handshake is never completed, `flag_ack` and `flag_fin` will be `0`, while `flag_syn` will be `1`. **Models must learn that a 0-second, SYN-only flow is a strong indicator of reconnaissance.**
+   Millions of `Attack_Verified` rows represent highly distributed, automated SYN Scans. Because they consist of a single packet meant to test a port, their `duration_s` is exactly `00:00:00.000`. Consequently, `bytes_per_sec` and `packets_per_sec` are recorded as `0` to prevent division-by-zero errors. Furthermore, because the TCP handshake is never completed, `flag_ack` and `flag_fin` will be `0`, while `flag_syn` will be `1`. Finally, because inter-arrival time requires at least two packets, and an incomplete TCP handshake has zero payload, Zeek will logically record `iat_mean`, `iat_std`, and `payload_entropy` as `0.0`. **Models must learn that a 0-second, SYN-only flow is a strong indicator of reconnaissance.**
 
 2. **Threat Intelligence API Rate Limits:** 
    To maintain processing speed across 18 Billion flows, the pipeline utilizes API limits. If the daily Threat Intelligence quota is exhausted during a massive DDoS event, `threat_intel_score` and `country` will gracefully fallback to empty/null values.

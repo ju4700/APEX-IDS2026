@@ -31,7 +31,7 @@ labeled/
 | 2 | `suspicious` | `attacker-associated` | ALL other flows FROM confirmed attacker IP in same window | Very low |
 | 3 | `normal` | `normal-sampled` | Random sample of flows NOT from any known attacker | Low FN possible |
 
-## Column Schema (30 columns)
+## Column Schema (38 columns)
 
 ### Raw Flow Fields (from nfdump)
 
@@ -57,6 +57,18 @@ labeled/
 | `packets_per_sec` | float | Packet rate | packets / duration |
 | `bytes_per_packet` | float | Average payload size | bytes / packets |
 
+### Deep Packet Inspection (Zeek Integration)
+
+*Merged deterministically using a NAT-immune `(src_ip, dst_port, protocol, 5min_time_bucket)` key.*
+
+| Column | Type | Description | Example |
+|--------|------|-------------|---------|
+| `iat_mean` | float | Mean inter-arrival time (s) | `0.045` |
+| `iat_std` | float | Standard deviation of IAT | `0.012` |
+| `payload_entropy` | float | Shannon entropy of payload (0-8) | `4.057` |
+| `dns_query` | string | Extracted DNS resolution request | `none` |
+| `init_win_bytes_forward` | int | Initial TCP window size (forward) | `64240` |
+
 ### TCP Flag Decomposition (binary features)
 
 | Column | Type | Description |
@@ -80,13 +92,16 @@ labeled/
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `label` | string | Primary label: `attack`, `suspicious`, `normal` |
+| `label` | string | Primary label: `Attack_Verified`, `Attack_Associated`, etc. |
 | `attack_type` | string | Specific type: `SSH-Brute`, `Port-445-Scan`, `normal`, etc. |
 | `attack_category` | string | Category: `brute-force`, `reconnaissance`, `web-attack`, `service-probe`, `lateral-movement`, `benign` |
 | `mitre_technique` | string | MITRE ATT&CK technique ID: `T1110`, `T1046`, `T1190`, etc. |
 | `mitre_tactic` | string | MITRE ATT&CK tactic: `credential-access`, `discovery`, `initial-access`, etc. |
 | `confidence` | string | Labeling confidence tier |
-| `evidence_source` | string | How the label was derived: `honeypot:port-match`, `honeypot:port-mismatch` |
+| `evidence_source` | string | How the label was derived: `honeypot:port-match` |
+| `threat_intel_score`| float | AbuseIPDB reputation score (0-100) |
+| `country` | string | Attacker GeoIP |
+| `behavioral_flags` | string | Heuristic tags (e.g., `scan-like:port-sweep`) |
 | `flow_file` | string | Source nfcapd file name |
 
 ## MITRE ATT&CK Mapping
@@ -120,4 +135,5 @@ labeled/
 | MITRE ATT&CK mapping | ✓ | ✗ | ✗ | ✗ |
 | Normal flow samples | ✓ | ✓ | ✓ | ✓ |
 | TCP flag decomposition | ✓ | ✓ | Partial | ✓ |
+| Zeek Layer 7 DPI | ✓ (5 new features) | ✗ | ✗ | ✗ |
 | Real-time collection | ✓ (5-min windows) | ✗ | ✗ | ✗ |
