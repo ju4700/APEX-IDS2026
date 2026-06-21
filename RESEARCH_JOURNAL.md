@@ -156,3 +156,28 @@ The dataset contains sufficient temporal resolution to perform IP-level campaign
 
 **6.4 Formal Publication:**
 Upon accumulation of sufficient data (target: 90 days of continuous collection), the dataset is intended for submission to an appropriate academic venue alongside a formal data descriptor paper detailing the collection methodology, statistical characteristics, and validation experiments.
+
+---
+
+## Entry 7: Big Data Architecture, Zeek DPI, and the FaaC Partition Pivot
+
+**Date:** June 21, 2026
+
+**Context & Observation:**
+As the dataset aggressively scaled toward the 18 Billion Flow target for the 90-day collection phase, three critical engineering bottlenecks emerged:
+1. **DPI Desynchronization:** An attempt to map Zeek Deep Packet Inspection (DPI) metadata (`payload_entropy`) to NetFlows using exact timestamps failed. Network Address Translation (NAT) and packet buffering caused micro-drifts in the timestamps between the Zeek sensor and the NetFlow exporter.
+2. **Boundary Splitting:** The pipeline's attempt to calculate Feature as a Counter (FaaC) 1-minute volumetric bins sequentially across `nfcapd` files resulted in "boundary splitting". Flows spanning across the 6-minute rotation intervals were split, creating duplicate 1-minute bins.
+3. **Out-of-Memory (OOM) Threat:** Processing 18 Billion flows for the FaaC generation using native Pandas `pd.concat` was calculated to require >120GB of RAM, guaranteeing a catastrophic server crash.
+
+**Resolutions & Architectural Pivots:**
+
+**1. NAT-Immune 6-Tuple DPI Merge:**
+To solve the Zeek timestamp drift, the merge logic was rewritten to perform a **5-minute bucketed 6-tuple merge** (`Source IP`, `Dest IP`, `Source Port`, `Dest Port`, `Protocol`, + `60-second Time Window`). This successfully mapped Zeek's `payload_entropy` onto the exact NetFlows without relying on microsecond-perfect timestamps. Validation proved successful: massive UDP botnet floods and TCP SYN scans registered mathematically perfect `0.0` payload entropy, while complex application-layer payloads registered high entropy.
+
+**2. DuckDB Out-of-Core Processing:**
+To resolve the OOM threat, the FaaC batch generator was entirely rewritten to use **DuckDB**. DuckDB's vectorized C++ engine allows the pipeline to stream 42GB+ of daily CSVs directly from the disk through the CPU, dynamically computing `skewness`, `kurtosis`, and volumetric metrics without ever loading the full dataset into RAM.
+
+**3. Idempotent Partitioned Parquets:**
+To resolve boundary splitting and prevent file-lock corruption during automated cron runs, the FaaC output architecture was pivoted from a monolithic master file to **Partitioned Daily Parquets**. The cron job executes at 12:10 AM, streams the previous day's complete flow set via DuckDB, and outputs a single `TimeSeries_FaaC_YYYY-MM-DD.parquet` file into a dedicated `TimeSeries/` directory.
+
+These three upgrades finalized the APEX-IDS2026 data engineering phase, resulting in a NAT-immune, out-of-core pipeline capable of running completely autonomously for the full 90-day duration.
