@@ -128,6 +128,8 @@ For detailed feature engineering recommendations, class imbalance strategies, an
 
 For a comprehensive academic evaluation of existing NIDS datasets (NSL-KDD, UNSW-NB15, CIC-IDS2017, LUFlow) and a structural justification for APEX-IDS2026, refer to [LITERATURE_REVIEW.md](docs/LITERATURE_REVIEW.md).
 
+For the detailed academic design, hardware topology, and software engineering of the APEX-IDS2026 capture and labeling pipeline, refer to the [Methodology and Experimental Architecture Draft](Paper/METHODOLOGY.md).
+
 ---
 
 ## 7. Infrastructure & Automation
