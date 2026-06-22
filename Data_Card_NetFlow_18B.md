@@ -99,7 +99,8 @@ Unlike legacy datasets that group flags into a single arbitrary hex string, APEX
 - `flag_syn`, `flag_ack`, `flag_fin`, `flag_rst`, `flag_psh`, `flag_urg` (Binary 0/1).
 
 ### 4.4 Deep Packet Inspection (Zeek DPI Metrics)
-Unlike standard NetFlow datasets which lack Layer 7 context, APEX-IDS2026 integrates a parallel Zeek DPI engine (via a TZSP mirror). To circumvent MikroTik DNAT routing (which rewrites destination IPs) and time drift, Zeek data is merged into NetFlow deterministically using a **NAT-immune 5-minute time bucket** on `(src_ip, dst_port, protocol)`.
+Unlike standard NetFlow datasets which lack Layer 7 context, APEX-IDS2026 integrates a parallel Zeek DPI engine (via a TZSP mirror). To circumvent MikroTik DNAT routing (which rewrites destination IPs) and time drift, Zeek data is merged into NetFlow deterministically using a **NAT-immune 5-minute time bucket** on `(src_ip, dst_port, protocol)`. 
+Furthermore, the Zeek DPI engine is architected to eliminate offline packet-capture vulnerabilities: it utilizes a Python-injected **5-second heartbeat Ethernet frame** to ensure offline clock synchronization, preventing flow-state freezing during network silence, and enforces a strict 60-second connection timeout to ensure rapid buffer flushing prior to NetFlow integration.
 - `iat_mean`: The mean inter-arrival time (IAT) of packets within the flow (in seconds). Crucial for identifying automated C2 cadence versus human interaction.
 - `iat_std`: The standard deviation of the inter-arrival time.
 - `payload_entropy`: Shannon entropy (0.0 to 8.0) of the connection payload. High entropy (>7.0) strongly indicates encrypted C2 channels, obfuscated data, or packed malware payloads.

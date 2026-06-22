@@ -281,7 +281,10 @@ During annotation, the following derived features are computed per flow:
 - `flag_syn`, `flag_ack`, `flag_fin`, `flag_rst`, `flag_psh`, `flag_urg`
 
 **Zeek DPI Integration (Layer 7):**
-A parallel Zeek sensor (`TZSP` mirror) captures application-layer data. However, due to MikroTik DNAT rewriting `dst_ip` and timezone drift (NetFlow is local, Zeek is UTC), merging is complex. The pipeline performs a NAT-immune, deterministic merge using a 5-minute time bucket:
+A parallel Zeek sensor (`TZSP` mirror) captures application-layer data and computes flow-level features. To ensure high-fidelity merges with NetFlow, three critical engineering challenges were solved:
+1. **Offline Clock Synchronization:** Zeek processes the TZSP stream in trace mode (`-r -`). A Python wrapper (`tzsp2pcap.py`) injects a 5-second periodic dummy Ethernet "heartbeat" frame into the PCAP stream. This forces Zeek's internal clock to advance even during periods of network silence, preventing "offline clock freeze" and ensuring accurate flow expiration.
+2. **Buffer Flush Race Conditions:** To prevent race conditions with the 6-minute pipeline cron job, Zeek is configured via a local script (`tzsp_entropy.zeek`) with a strict 60-second inactivity timeout (`redef tcp_inactivity_timeout = 60secs;`). This guarantees that connection states are flushed to `features.log` reliably before NFDUMP processes the corresponding time window.
+3. **NAT-Immune Time-Bucket Merging:** Due to MikroTik DNAT rewriting `dst_ip` (meaning NetFlow sees the LAN IP while Zeek sees the WAN IP) and timezone differences (NetFlow is local time, Zeek is UTC), merging is complex. The pipeline calculates a UTC-to-local time offset and performs a deterministic merge using a 5-minute time bucket.
 - **Merge Key:** `['src_ip', 'dst_port', 'protocol', '5min_time_bucket']`
 - **Features Extracted:** `iat_mean`, `iat_std`, `payload_entropy`, `dns_query`, `init_win_bytes_forward`
 This successfully bypasses the ephemeral port problem and the timestamp drift, achieving an ~80% correlation rate for proven attacks.
