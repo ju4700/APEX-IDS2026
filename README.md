@@ -140,3 +140,13 @@ For the detailed academic design, hardware topology, and software engineering of
 - **Cron Stream Schedule:** `*/6 * * * *` (Runs correlation pipeline every 6 mins)
 - **Cron Batch Schedule:** `10 0 * * *` (Runs DuckDB FaaC Generator at 12:10 AM)
 - **Memory Optimization:** Uses DuckDB vectorized streams to prevent 120GB+ RAM OOM crashes.
+
+---
+
+## 8. Sample Dataset Access
+
+A subset of the dataset has been safely anonymized using SHA-256 IP hashing and is available directly in this repository for preview and testing.
+
+You can find the sample CSV files for Tier 1 (Attacks), Tier 2 (Suspicious), and Tier 3 (Normal) traffic located in the `Machine Learnign/data/` directory.
+
+The full multi-terabyte, 90-day collection (including DuckDB Time-Series Parquet files) will be hosted externally on a research data platform (such as Zenodo or Kaggle) upon completion of the capture period.
