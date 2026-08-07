@@ -13,4 +13,3 @@ Mikrotik Scripts/**
 .env
 __pycache__/
 *.pyc
-SERVER_RUNBOOK.md
