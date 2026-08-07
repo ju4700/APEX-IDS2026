@@ -6,7 +6,7 @@
 
 ## Abstract
 
-APEX-IDS2026 is a research-grade network intrusion detection dataset built on live production network infrastructure. Unlike existing benchmark datasets (NSL-KDD, UNSW-NB15, CIC-IDS2017), which rely on synthetically generated attack traffic in controlled laboratory environments, APEX-IDS2026 captures genuine threat actor behavior from the live internet using a MikroTik router honeypot integrated with a continuous 18-Billion Flow pipeline.
+APEX-IDS2026 is a research-grade network intrusion detection dataset built on live production network infrastructure. Unlike existing benchmark datasets (NSL-KDD, UNSW-NB15, CIC-IDS2017), which rely on synthetically generated attack traffic in controlled laboratory environments, APEX-IDS2026 captures genuine threat actor behavior from the live internet using a MikroTik router honeypot integrated with a continuous, automated 44-day collection pipeline.
 
 The central contribution of this dataset is its **Deterministic Labeling Architecture** combined with **Zeek Deep Packet Inspection**. Using a NAT-immune 5-minute bucketed 6-tuple merge, the pipeline correlates raw NetFlows with Zeek `payload_entropy` to produce mathematically pure labels with a guaranteed 0% false positive rate for Tier 1 attacks. Furthermore, the dataset offers a secondary **Feature as a Counter (FaaC)** time-series Parquet dataset powered by out-of-core DuckDB aggregations, optimized natively for Long Short-Term Memory (LSTM) volumetric anomaly detectors.
 
@@ -20,9 +20,9 @@ The machine learning community in cybersecurity has long depended on datasets th
 - **UNSW-NB15** was generated using commercial traffic generators in a closed network — synthetic by construction.
 - **CIC-IDS2017** relies on heuristic labeling of lab traffic, missing the chaos of real-world internet background radiation.
 
-Furthermore, analyzing big data network telemetry usually requires massive Apache Spark clusters. Attempting to load millions of flows into Pandas results in catastrophic Out-of-Memory (OOM) crashes. APEX-IDS2026 addresses these gaps by capturing real threat actors and providing a highly optimized **DuckDB Partitioned Parquet** architecture that scales to 18 Billion flows on a single workstation.
+Furthermore, analyzing big data network telemetry usually requires massive Apache Spark clusters. Attempting to load millions of flows into Pandas results in catastrophic Out-of-Memory (OOM) crashes. APEX-IDS2026 addresses these gaps by capturing real threat actors and providing a highly optimized **DuckDB Partitioned Parquet** architecture that handles 141.8 million flows on a single workstation without memory pressure.
 
-While legacy datasets like UNSW-NB15 and CIC-IDS2017 suffer from synthetic simulation artifacts and bad design smells, and existing real-world honeypot datasets like Kyoto 2006+ and LUFlow lack explicit multi-class attack taxonomies, APEX-IDS2026 bridges this gap. By utilizing a 90-day live ISP collection period to address concept drift, integrating LUFlow's state-of-the-art Inter-Arrival Time and Payload Entropy features, and introducing a 5-Tier Deterministic Labeling Architecture for ground-truth multi-class labeling, APEX-IDS2026 provides a truly evasion-resistant, real-world benchmark.
+While legacy datasets like UNSW-NB15 and CIC-IDS2017 suffer from synthetic simulation artifacts and bad design smells, and existing real-world honeypot datasets like Kyoto 2006+ and LUFlow lack explicit multi-class attack taxonomies, APEX-IDS2026 bridges this gap. By utilizing a 44-day live ISP collection period to address concept drift, integrating LUFlow's state-of-the-art Inter-Arrival Time and Payload Entropy features, and introducing a 5-Tier Deterministic Labeling Architecture for ground-truth multi-class labeling, APEX-IDS2026 provides a truly evasion-resistant, real-world benchmark.
 
 ---
 
@@ -61,6 +61,7 @@ Flows with no honeypot interaction, no threat intelligence flags, no behavioral 
 | Attack types observed | 300+ distinct port scan and service probe categories |
 | High-Volume Attacks | HTTPS-Probe, HTTP-Probe, Redis-Probe, SSH-Brute, Port-5060-Scan, MySQL-Brute |
 | DPI Capabilities | Zeek `payload_entropy`, `iat_mean`, `iat_std` |
+| Zeek DPI Coverage | 24 days `zeek_available=True` (71.6M flows) / 20 days `False` (70.2M flows) |
 | Output formats | Labeled CSVs & DuckDB Partitioned Parquets (`pyarrow`) |
 | Labeling latency | < 6 minutes from flow capture to labeled CSV |
 
@@ -157,4 +158,4 @@ A subset of the dataset has been safely anonymized using SHA-256 IP hashing and 
 
 You can find the sample CSV files for Tier 1 (Attacks), Tier 2 (Suspicious), and Tier 3 (Normal) traffic located in the `Machine Learnign/data/` directory.
 
-The full multi-terabyte, 90-day collection (including DuckDB Time-Series Parquet files) will be hosted externally on a research data platform (such as Zenodo or Kaggle) upon completion of the capture period.
+The full dataset (38.6 GB, 141,841,235 flows, including DuckDB Time-Series Parquet files) will be hosted externally on a research data platform (such as Zenodo or IEEE DataPort) upon publication.

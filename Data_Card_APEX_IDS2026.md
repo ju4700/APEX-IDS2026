@@ -137,6 +137,15 @@ When evaluating the dataset, data scientists must be aware that modern 2026 botn
 3. **Behavioral Flag Optimization:** 
    `behavioral_flags` are intentionally bypassed for `Attack_Verified` flows. Because their malicious intent is already physically proven by hitting the honeypot, the compute resources are saved, resulting in empty values for this column on Tier 1 data.
 
+4. **Zeek DPI Sensor Outage (`zeek_available` flag):**
+   The Zeek Network Analysis Framework (NAF) experienced a silent crash between **July 11 and July 26** (16 days), and was not yet running / was unstable on June 21–22, August 1, and August 3. During these windows, DPI columns (`iat_mean`, `iat_std`, `payload_entropy`, `dns_query`, `init_win_bytes_forward`) are legitimately `0.0` or `null` — the values were never captured.
+
+   Rather than imputing synthetic values (which would fabricate ground truth that never existed), every Parquet file in the dataset carries a `zeek_available` boolean column:
+   - `zeek_available = True` → Zeek was running; DPI columns are valid (71.6M flows, 24 days)
+   - `zeek_available = False` → Zeek was offline; DPI columns are correctly empty (70.2M flows, 20 days)
+
+   **Researchers using DPI features must filter on `zeek_available = True`.** The outage window is also a built-in robustness test: researchers can evaluate how well their IDS performs when DPI features suddenly disappear — a realistic operational scenario.
+
 ---
 
 ## 6. Technical Distribution & Integration
