@@ -50,16 +50,24 @@ Flows with no honeypot interaction, no threat intelligence flags, no behavioral 
 
 | Property | Value |
 |----------|-------|
-| Collection period | June – August 2026 (90 days) |
-| Total Scale Target | ~18,000,000,000 Flows |
+| Collection period | June – August 2026 (44 days) |
+| Total Flows | 141,841,235 Flows |
 | Time window resolution | ~6 minutes per file (`nfcapd`) |
 | Daily FaaC Resolution | 1-minute partitioned time-series |
-| Total Honeypot Hits | 87,545+ |
+| Class Balance | 41% Normal, 29% Attacks, 30% Suspicious |
+| Total Honeypot Hits | 42,205,903 |
+| Unique Attacker IPs | 13,638 |
+| Unique Targeted Ports | 64,084 |
 | Attack types observed | 300+ distinct port scan and service probe categories |
-| Named attack types | Telnet-Brute, SSH-Brute, SIP-Flood, HTTP-Probe, SMB-Probe, MySQL-Brute, Redis-Probe, MongoDB-Probe |
+| High-Volume Attacks | HTTPS-Probe, HTTP-Probe, Redis-Probe, SSH-Brute, Port-5060-Scan, MySQL-Brute |
 | DPI Capabilities | Zeek `payload_entropy`, `iat_mean`, `iat_std` |
 | Output formats | Labeled CSVs & DuckDB Partitioned Parquets (`pyarrow`) |
 | Labeling latency | < 6 minutes from flow capture to labeled CSV |
+
+### Detailed Breakdown
+- **Attacks (Tier 1):** 42,205,903
+- **Suspicious (Tier 2/3):** 41,360,332
+- **Normal (Tier 4/5):** 58,275,000
 
 ---
 

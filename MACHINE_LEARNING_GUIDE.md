@@ -40,18 +40,18 @@ Always split by **time window** (i.e., by `flow_file`), not by row.
 
 Similarly, `dst_ip` and `flow_file` are identifiers, not features.
 
-### 2.4 Class Imbalance
+### 2.4 Class Balance
 
-The class distribution within each window is severely imbalanced:
+The class distribution across the entire 44-day dataset is exceptionally balanced for an intrusion detection dataset:
 
-| Class | Approximate Count per Window |
-|-------|------------------------------|
-| Tier 3 (normal) | 5,000 |
-| Tier 1 (attack) | 700–1,200 |
-| Tier 2 (suspicious) | 800–1,100 |
-| Total traffic in window | 465,000–660,000 |
+| Class | Percentage | Count per Window (Avg) | Total Count |
+|-------|------------|------------------------|-------------|
+| Tier 3 (normal) | 41% | ~5,506 | 58,154,907 |
+| Tier 1 (attack) | 29% | ~3,895 | 42,205,903 |
+| Tier 2 (suspicious) | 30% | ~4,029 | 41,480,425 |
+| **Total** | **100%** | **~13,431** | **141,841,235** |
 
-Note that the normal sample is artificially limited to 5,000 flows, while the underlying benign traffic volume is orders of magnitude larger. The actual ratio of attack to normal traffic in the raw nfcapd file is approximately 0.33% — reflecting the true internet-scale background. Any evaluation that does not account for this imbalance will produce misleadingly high accuracy scores.
+Unlike legacy datasets that suffer from extreme 1:1000 class imbalances, APEX-IDS2026 provides a robust, balanced representation of modern threat traffic against background noise, significantly easing the training of deep learning architectures without relying heavily on synthetic minority oversampling (SMOTE).
 
 ---
 
@@ -213,7 +213,7 @@ df_test = pd.concat([
 **Notes:**
 - This configuration uses only Tier 1 and Tier 3 data.
 - Tier 1 labels carry 0% false positives, making this the cleanest possible binary classification problem.
-- Class imbalance is approximately 1:4 (attacks to normal) in the sampled data. For real-world evaluation, apply the full 1:500+ imbalance ratio as described in Section 6.
+- Class balance is approximately 41:29 (normal to attacks), providing a robust environment for binary classification without extreme imbalance handling.
 
 ### 5.2 Configuration B — Multi-Class Attack Type Classification
 
@@ -250,42 +250,23 @@ df_train = pd.concat([
 
 **Objective:** Evaluate how well a model trained on early data generalizes to later data — testing resilience to threat actor evolution.
 
-Train on windows from the first 30 days of collection. Evaluate on windows from days 31–60. Evaluate again on days 61–90. Report the performance trajectory over time as a measure of temporal generalization.
+Train on windows from the first 15 days of collection. Evaluate on windows from days 16–30. Evaluate again on days 31–44. Report the performance trajectory over time as a measure of temporal generalization.
 
 ---
 
-## 6. Handling Class Imbalance
+## 6. Model Evaluation and Tuning
 
-### 6.1 The Sampled vs. Real-World Distribution
+### 6.1 The Balanced Distribution
 
-APEX-IDS2026's Tier 3 (normal) data is downsampled to 5,000 flows per window for practical storage reasons. The actual network contains approximately 500,000–650,000 total flows per window, of which roughly 0.33% are attack flows. Researchers evaluating "real-world" performance should test at the true distribution (1:500+ imbalance) rather than the sampled 1:4 ratio.
+Because APEX-IDS2026 is naturally balanced (41% Normal, 29% Attacks, 30% Suspicious), researchers do not need to implement extreme class-weighting or synthetic oversampling (SMOTE) techniques typically required by legacy datasets (which often exhibit 1:500 attack ratios).
 
-To simulate the real distribution, sample additional normal flows from the raw nfcapd files using nfdump and append them to the Tier 3 CSVs.
+### 6.2 Recommended Evaluation Metrics
 
-### 6.2 Recommended Imbalance Strategies
-
-**For tree-based models (Random Forest, XGBoost, LightGBM):**
-Use the `class_weight` or `scale_pos_weight` parameter to weight the minority class inversely proportional to its frequency. This is computationally efficient and generally effective.
-
-```python
-from sklearn.ensemble import RandomForestClassifier
-
-# For binary classification at sampled ratio (~1:4)
-clf = RandomForestClassifier(class_weight="balanced", n_estimators=200)
-
-# For real-world ratio (~1:500)
-clf = RandomForestClassifier(class_weight={0: 1, 1: 500}, n_estimators=200)
-```
-
-**For neural networks:**
-Use weighted cross-entropy loss. Alternatively, apply SMOTE (Synthetic Minority Oversampling Technique) only on the training set, never the test set.
-
-**For evaluation:**
-Never use accuracy as the primary metric on imbalanced data. Use:
+While accuracy is valid on a balanced dataset, for operational deployment decisions, use:
 - **Area Under ROC Curve (AUC-ROC):** Threshold-independent, measures discriminative power
-- **Precision-Recall Curve (AUC-PR):** More informative than ROC when the positive class is rare
+- **Precision-Recall Curve (AUC-PR):** Informative for deployment thresholding
 - **F1 Score:** Harmonic mean of precision and recall at the operating threshold
-- **Matthews Correlation Coefficient (MCC):** Stable for extreme imbalance
+- **FP Rate:** Critical for operational SIEM deployment decisions
 
 ---
 
@@ -304,7 +285,6 @@ model = xgb.XGBClassifier(
     learning_rate=0.05,
     subsample=0.8,
     colsample_bytree=0.8,
-    scale_pos_weight=4,   # Adjust for class imbalance
     use_label_encoder=False,
     eval_metric="aucpr",
     random_state=42

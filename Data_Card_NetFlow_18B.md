@@ -1,6 +1,6 @@
 <center>
 
-# APEX-IDS2026: The 18 Billion Flow Ground-Truth Cybersecurity Dataset
+# APEX-IDS2026: The 141.8 Million Flow Ground-Truth Cybersecurity Dataset
 **Enterprise Data Card & Technical Specification**
 
 **Version:** 1.0 (Commercial Evaluation Edition) &nbsp; | &nbsp; **Date:** June 2026<br>
@@ -13,9 +13,9 @@
 <div style="text-align: justify;">
 
 > [!IMPORTANT]
-> **Executive Summary:** APEX-IDS2026 represents a paradigm shift in machine learning cybersecurity data. Legacy datasets (e.g., UNSW-NB15, CIC-IDS2017) rely heavily on simulated, decade-old laboratory attacks or heuristic statistical labeling that introduces massive false-positive noise. **APEX-IDS2026 captures over 18 Billion rows of live, modern botnet traffic from a Tier-2 South Asian ISP network with absolute physical ground truth established via hardware honeypot correlation.** This dataset guarantees zero false-positives for its primary attack classes, offering cybersecurity vendors the ability to train next-generation IDS and ML models on authentic 2026 threat landscapes without the pitfall of shortcut-learning.
+> **Executive Summary:** APEX-IDS2026 represents a paradigm shift in machine learning cybersecurity data. Legacy datasets (e.g., UNSW-NB15, CIC-IDS2017) rely heavily on simulated, decade-old laboratory attacks or heuristic statistical labeling that introduces massive false-positive noise. **APEX-IDS2026 captures over 141.8 million rows of live, modern botnet traffic from a Tier-2 South Asian ISP network with absolute physical ground truth established via hardware honeypot correlation.** This dataset guarantees zero false-positives for its primary attack classes, offering cybersecurity vendors the ability to train next-generation IDS and ML models on authentic 2026 threat landscapes without the pitfall of shortcut-learning.
 >
-> While legacy datasets like UNSW-NB15 and CIC-IDS2017 suffer from synthetic simulation artifacts and bad design smells, and existing real-world honeypot datasets like Kyoto 2006+ and LUFlow lack explicit multi-class attack taxonomies, APEX-IDS2026 bridges this gap. By utilizing a 90-day live ISP collection period to address concept drift, integrating LUFlow's state-of-the-art Inter-Arrival Time and Payload Entropy features, and introducing a 5-Tier Deterministic Labeling Architecture for ground-truth multi-class labeling, APEX-IDS2026 provides a truly evasion-resistant, real-world benchmark.
+> While legacy datasets like UNSW-NB15 and CIC-IDS2017 suffer from synthetic simulation artifacts and bad design smells, and existing real-world honeypot datasets like Kyoto 2006+ and LUFlow lack explicit multi-class attack taxonomies, APEX-IDS2026 bridges this gap. By utilizing a 44-day live ISP collection period to address concept drift, integrating LUFlow's state-of-the-art Inter-Arrival Time and Payload Entropy features, and introducing a 5-Tier Deterministic Labeling Architecture for ground-truth multi-class labeling, APEX-IDS2026 provides a truly evasion-resistant, real-world benchmark.
 
 ---
 
@@ -27,7 +27,7 @@ APEX-IDS2026 does not use simulated traffic generators. It is collected from the
 - **Collection Point:** ISP Edge/Core Router (South Asia).
 - **Format:** Extended NetFlow v9 / IPFIX exported directly to a high-throughput `nfcapd` collector.
 - **Rotation Interval:** 5-minute fixed time windows, ensuring high temporal fidelity and preventing flow-record truncation.
-- **Volume:** ~800,000 flows captured per 5-minute window, scaling to **over 18 Billion flows** over the full continuous 90-day collection period.
+- **Volume:** ~800,000 flows captured per 5-minute window, scaling to **over 141.8 million flows** over the full continuous 44-day collection period.
 
 ### 1.2 Physical Ground Truth (The Honeypot Catalyst)
 The defining feature of APEX-IDS2026 is its physical ground-truth correlation engine:
@@ -42,7 +42,7 @@ The defining feature of APEX-IDS2026 is its physical ground-truth correlation en
 
 ## 2. The 5-Tier Deterministic Labeling Strategy
 
-Every single flow in the 18 Billion record dataset is passed through a strict decision tree and categorized into one of five tiers. 
+Every single flow in the 141.8 million record dataset is passed through a strict decision tree and categorized into one of five tiers. 
 
 | Tier | Label | Confidence Level | Validation Methodology |
 |---|---|---|---|
@@ -132,7 +132,7 @@ When evaluating the dataset, data scientists must be aware that modern 2026 botn
    Millions of `Attack_Verified` rows represent highly distributed, automated SYN Scans. Because they consist of a single packet meant to test a port, their `duration_s` is exactly `00:00:00.000`. Consequently, `bytes_per_sec` and `packets_per_sec` are recorded as `0` to prevent division-by-zero errors. Furthermore, because the TCP handshake is never completed, `flag_ack` and `flag_fin` will be `0`, while `flag_syn` will be `1`. Finally, because inter-arrival time requires at least two packets, and an incomplete TCP handshake has zero payload, Zeek will logically record `iat_mean`, `iat_std`, and `payload_entropy` as `0.0`. **Models must learn that a 0-second, SYN-only flow is a strong indicator of reconnaissance.**
 
 2. **Threat Intelligence API Rate Limits:** 
-   To maintain processing speed across 18 Billion flows, the pipeline utilizes API limits. If the daily Threat Intelligence quota is exhausted during a massive DDoS event, `threat_intel_score` and `country` will gracefully fallback to empty/null values.
+   To maintain processing speed across 141.8 million flows, the pipeline utilizes API limits. If the daily Threat Intelligence quota is exhausted during a massive DDoS event, `threat_intel_score` and `country` will gracefully fallback to empty/null values.
 
 3. **Behavioral Flag Optimization:** 
    `behavioral_flags` are intentionally bypassed for `Attack_Verified` flows. Because their malicious intent is already physically proven by hitting the honeypot, the compute resources are saved, resulting in empty values for this column on Tier 1 data.
@@ -141,7 +141,7 @@ When evaluating the dataset, data scientists must be aware that modern 2026 botn
 
 ## 6. Technical Distribution & Integration
 
-APEX-IDS2026 is engineered specifically for modern Big Data and MLOps pipelines. Managing 18 Billion flows (2-3 Terabytes of data) requires state-of-the-art analytical tools.
+APEX-IDS2026 is engineered specifically for modern Big Data and MLOps pipelines. Managing 141.8 million flows (38.6 Gigabytes of data) requires state-of-the-art analytical tools.
 
 - **Format:** `Apache Parquet` (via PyArrow).
 - **Compression:** Snappy compression, resulting in a **90% reduction in disk footprint** compared to raw CSVs.

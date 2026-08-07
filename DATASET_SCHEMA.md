@@ -8,7 +8,7 @@ network with an integrated MikroTik honeypot. Unlike lab-generated datasets
 (CICIDS2017, NSL-KDD), all attacks are real and labels carry zero false
 positives via honeypot ground truth.
 
-**Collection period:** 90 days (June–August 2026)
+**Collection period:** 44 days (June–August 2026)
 **Collection point:** MikroTik router → nfcapd (NetFlow v5/v9)
 **Honeypot IP:** 103.148.176.62
 **Labeling method:** Honeypot correlation with multi-tier confidence
@@ -130,7 +130,7 @@ labeled/
 | Attack source | Real attackers | Synthetic | Synthetic | Synthetic |
 | Label method | Honeypot ground truth | CICFlowMeter | Manual | IXIA |
 | False positive rate | 0% (Tier 1) | Unknown | Unknown | Unknown |
-| Collection period | 90 days | 5 days | N/A | 31 hours |
+| Collection period | 44 days | 5 days | N/A | 31 hours |
 | Multi-tier confidence | ✓ | ✗ | ✗ | ✗ |
 | MITRE ATT&CK mapping | ✓ | ✗ | ✗ | ✗ |
 | Normal flow samples | ✓ | ✓ | ✓ | ✓ |

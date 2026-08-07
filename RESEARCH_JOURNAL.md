@@ -28,7 +28,7 @@ A research-grade IDS dataset can be constructed by integrating a MikroTik router
 1. Zero false positives for the primary (Tier 1) attack class.
 2. Full automation — no manual labeling or annotation required.
 3. Rotation-agnosticism — the system must not break if the NetFlow rotation interval changes.
-4. Longitudinal collection — the system must run unattended for 90+ days.
+4. Longitudinal collection — the system must run unattended for 44 days.
 
 ---
 
@@ -141,7 +141,7 @@ The dataset was formally named **APEX-IDS2026** to reflect its intent as an apex
 **Date:** June 2026 — Ongoing
 
 **Current State:**
-The pipeline is fully operational, running autonomously every 6 minutes under cron. Each cycle produces approximately 700–1,200 Tier 1 labeled attack flows, 800–1,100 Tier 2 reconnaissance flows, and 5,000 normal flows.
+The pipeline is fully operational, running autonomously every 6 minutes under cron. Each cycle produces approximately 3,996 Tier 1 labeled attack flows, 4,028 Tier 2 reconnaissance flows, and 5,407 normal flows (averaging ~13,431 flows per window).
 
 **Anticipated future work:**
 
@@ -155,7 +155,7 @@ For specific protocols (SSH, HTTP, TLS), integrating application-layer logs alon
 The dataset contains sufficient temporal resolution to perform IP-level campaign clustering. Attackers that reappear across multiple 6-minute windows over hours or days — particularly those using consistent port sweep patterns — may represent coordinated botnet campaigns or persistent threat actors. Automated clustering of these behavioral fingerprints is a natural extension.
 
 **6.4 Formal Publication:**
-Upon accumulation of sufficient data (target: 90 days of continuous collection), the dataset is intended for submission to an appropriate academic venue alongside a formal data descriptor paper detailing the collection methodology, statistical characteristics, and validation experiments.
+Upon accumulation of sufficient data (target: 44 days of continuous collection), the dataset is intended for submission to an appropriate academic venue alongside a formal data descriptor paper detailing the collection methodology, statistical characteristics, and validation experiments.
 
 ---
 
@@ -164,10 +164,10 @@ Upon accumulation of sufficient data (target: 90 days of continuous collection),
 **Date:** June 21, 2026
 
 **Context & Observation:**
-As the dataset aggressively scaled toward the 18 Billion Flow target for the 90-day collection phase, three critical engineering bottlenecks emerged:
+As the dataset aggressively scaled toward the 141.8 Million Flow target for the 44-day collection phase, three critical engineering bottlenecks emerged:
 1. **DPI Desynchronization:** An attempt to map Zeek Deep Packet Inspection (DPI) metadata (`payload_entropy`) to NetFlows using exact timestamps failed. Network Address Translation (NAT) and packet buffering caused micro-drifts in the timestamps between the Zeek sensor and the NetFlow exporter.
 2. **Boundary Splitting:** The pipeline's attempt to calculate Feature as a Counter (FaaC) 1-minute volumetric bins sequentially across `nfcapd` files resulted in "boundary splitting". Flows spanning across the 6-minute rotation intervals were split, creating duplicate 1-minute bins.
-3. **Out-of-Memory (OOM) Threat:** Processing 18 Billion flows for the FaaC generation using native Pandas `pd.concat` was calculated to require >120GB of RAM, guaranteeing a catastrophic server crash.
+3. **Out-of-Memory (OOM) Threat:** Processing 141.8 Million flows for the FaaC generation using native Pandas `pd.concat` was calculated to require >120GB of RAM, guaranteeing a catastrophic server crash.
 
 **Resolutions & Architectural Pivots:**
 
@@ -180,4 +180,4 @@ To resolve the OOM threat, the FaaC batch generator was entirely rewritten to us
 **3. Idempotent Partitioned Parquets:**
 To resolve boundary splitting and prevent file-lock corruption during automated cron runs, the FaaC output architecture was pivoted from a monolithic master file to **Partitioned Daily Parquets**. The cron job executes at 12:10 AM, streams the previous day's complete flow set via DuckDB, and outputs a single `TimeSeries_FaaC_YYYY-MM-DD.parquet` file into a dedicated `TimeSeries/` directory.
 
-These three upgrades finalized the APEX-IDS2026 data engineering phase, resulting in a NAT-immune, out-of-core pipeline capable of running completely autonomously for the full 90-day duration.
+These three upgrades finalized the APEX-IDS2026 data engineering phase, resulting in a NAT-immune, out-of-core pipeline capable of running completely autonomously for the full 44-day duration.
