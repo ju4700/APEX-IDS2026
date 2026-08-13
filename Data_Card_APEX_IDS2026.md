@@ -1,171 +1,279 @@
 <center>
 
 # APEX-IDS2026: The 141.8 Million Flow Ground-Truth Cybersecurity Dataset
-**Enterprise Data Card & Technical Specification**
+**Research Data Card & Technical Specification**
 
-**Version:** 1.0 (Commercial Evaluation Edition) &nbsp; | &nbsp; **Date:** June 2026<br>
-**License:** Enterprise / Commercial (Proprietary) &nbsp; | &nbsp; **Authors:** APEX-IDS Research & Development Team
+**Version:** 2.0 (August 2026) &nbsp; | &nbsp; **Date:** August 2026<br>
+**License:** Research Use (Pre-Publication) &nbsp; | &nbsp; **Authors:** APEX-IDS Research Team
 
 </center>
 
 <br>
 
-<div style="text-align: justify;">
-
 > [!IMPORTANT]
-> **Executive Summary:** APEX-IDS2026 represents a paradigm shift in machine learning cybersecurity data. Legacy datasets (e.g., UNSW-NB15, CIC-IDS2017) rely heavily on simulated, decade-old laboratory attacks or heuristic statistical labeling that introduces massive false-positive noise. **APEX-IDS2026 captures over 141.8 million rows of live, modern botnet traffic from a Tier-2 South Asian ISP network with absolute physical ground truth established via hardware honeypot correlation.** This dataset guarantees zero false-positives for its primary attack classes, offering cybersecurity vendors the ability to train next-generation IDS and ML models on authentic 2026 threat landscapes without the pitfall of shortcut-learning.
->
-> While legacy datasets like UNSW-NB15 and CIC-IDS2017 suffer from synthetic simulation artifacts and bad design smells, and existing real-world honeypot datasets like Kyoto 2006+ and LUFlow lack explicit multi-class attack taxonomies, APEX-IDS2026 bridges this gap. By utilizing a 44-day live ISP collection period to address concept drift, integrating LUFlow's state-of-the-art Inter-Arrival Time and Payload Entropy features, and introducing a 5-Tier Deterministic Labeling Architecture for ground-truth multi-class labeling, APEX-IDS2026 provides a truly evasion-resistant, real-world benchmark.
+> **Executive Summary:** APEX-IDS2026 is a 141.8-million-flow network intrusion detection dataset built on real-world ISP infrastructure with physical honeypot ground truth. Unlike CIC-IDS2017, NSL-KDD, and UNSW-NB15 — which rely on laboratory simulation — APEX-IDS2026 captures genuine threat actor behavior from 13,638 real attacker IPs across 60 countries over 44 consecutive days. Tier 1 labels carry zero false positives. The dataset covers 64,084 unique attack targets, five MITRE ATT&CK tactics, and provides MITRE-mapped multi-class taxonomies unavailable in any existing public IDS dataset.
 
 ---
 
 ## 1. Network Architecture & Collection Methodology
 
-APEX-IDS2026 does not use simulated traffic generators. It is collected from the edge routing infrastructure of a live Internet Service Provider.
+APEX-IDS2026 is collected from the edge routing infrastructure of a live Internet Service Provider.
 
 ### 1.1 Live ISP Capture
-- **Collection Point:** ISP Edge/Core Router (South Asia).
-- **Format:** Extended NetFlow v9 / IPFIX exported directly to a high-throughput `nfcapd` collector.
-- **Rotation Interval:** 5-minute fixed time windows, ensuring high temporal fidelity and preventing flow-record truncation.
-- **Volume:** ~800,000 flows captured per 5-minute window, scaling to **over 141.8 million flows** over the full continuous 44-day collection period.
+- **Collection Point:** ISP Edge Router (South Asian Tier-2 ISP)
+- **Capture Format:** NetFlow v9 exported from MikroTik RouterOS to `nfcapd` collector
+- **Rotation Interval:** 5-minute fixed time windows (~6 minute files in practice)
+- **Volume:** ~800,000 flows per 5-minute window, **141,841,235 flows** over 44 days
+- **Coverage:** June 21 to August 3, 2026 (44 consecutive days)
+- **Archive:** 12,208 raw nfcapd.gz compressed files (~219 GB before compression)
 
-### 1.2 Physical Ground Truth (The Honeypot Catalyst)
+### 1.2 Physical Ground Truth — The Honeypot Catalyst
+
 The defining feature of APEX-IDS2026 is its physical ground-truth correlation engine:
-- A deliberately vulnerable hardware honeypot (`103.148.176.62`) is exposed on the ISP network. 
-- Because this honeypot hosts **zero legitimate user services**, any inbound connection attempt is mathematically, unarguably malicious.
-- **The Correlation Engine (`correlate_honeypot_flows.py`):** Cross-references the massive haystack of raw ISP traffic against the exact timestamps, source IPs, and destination ports of honeypot hits. 
+
+- A deliberately vulnerable hardware honeypot (`103.148.176.62`) is permanently exposed on the ISP network
+- Because this IP hosts **zero legitimate user services**, any inbound connection is mathematically provable as malicious
+- **The Correlation Engine (`correlate_honeypot_flows.py`):** Cross-references every raw NetFlow against the exact timestamps, source IPs, and destination ports of honeypot hits using a NAT-immune 5-minute time bucket
 
 > [!TIP]
-> **Why This Matters to ML Engineers:** Training a model on dirty labels causes the model to learn the noise, creating false positives in production. By using a physical honeypot to isolate attackers, APEX-IDS2026 provides **perfectly clean, deterministic labels** for the `Attack_Verified` class.
+> **Why this matters for ML:** CICFlowMeter-based labels (CIC-IDS2017) require researchers to trust a heuristic label assignment. APEX-IDS2026's Tier 1 labels are physically proven — the attacker's packet physically reached the honeypot. This eliminates shortcut-learning from label noise.
+
+### 1.3 Zeek Deep Packet Inspection
+
+A parallel Zeek Network Analysis Framework engine runs on the same interface via TZSP mirroring. Zeek enriches flows with:
+- Inter-arrival time statistics (`iat_mean`, `iat_std`)
+- Shannon payload entropy (`payload_entropy`)
+- DNS query extraction (`dns_query`)
+- Initial TCP window size (`init_win_bytes_forward`)
+
+Zeek data is merged deterministically using a NAT-immune key: `(src_ip, dst_port, protocol, 5min_bucket)`.
+
+**Coverage:** 71,485,904 flows (50.48% of dataset) across 24 of 44 days. All files include a `zeek_available` boolean flag.
 
 ---
 
-## 2. The 5-Tier Deterministic Labeling Strategy
+## 2. The 5-Tier Deterministic Labeling Architecture
 
-Every single flow in the 141.8 million record dataset is passed through a strict decision tree and categorized into one of five tiers. 
+Every flow is categorized into exactly one of five tiers through a strict decision tree.
 
-| Tier | Label | Confidence Level | Validation Methodology |
+| Tier | Label | Flows | Confidence | Validation Method |
+|---|---|---|---|---|
+| **1** | `Attack_Verified` | **42,205,903** | **Absolute (0% FP)** | Source IP physically hit honeypot; destination port matched |
+| **2** | `Attack_Associated` | **41,446,346** | High (95%+) | Confirmed attacker IP, other destination — lateral campaign traffic |
+| **3** | `Benign_Verified` | **26,901,115** | High (95%+) | Flow to validated hyperscaler/safe infrastructure |
+| **4** | `Benign_Assumed` | **16,672,439** | Baseline | No threat indicators, no behavioral anomaly flags |
+| **5** | `Unverified` | **14,374,050** | Medium | AbuseIPDB score > 25 OR behavioral anomaly detected |
+
+**Label purity guarantee:** A global cross-window attacker IP deny-list was applied to the entire normal partition. **697,727 contamination flows** (attack IPs masquerading as normal) were identified and reclassified to `Attack_Associated`. The resulting normal partition carries zero-contamination by any Tier 1 attacker IP.
+
+---
+
+## 3. Attack Diversity & Real-World Threat Landscape
+
+APEX-IDS2026 captures the full spectrum of opportunistic attacks faced by internet-connected infrastructure in 2026. This is not laboratory simulation — these are real campaigns from real threat actors.
+
+### MITRE ATT&CK Coverage (Attack_Verified Flows)
+
+| Technique | Tactic | Flows | % |
 |---|---|---|---|
-| **Tier 1** | `Attack_Verified` | **Absolute (100%)** | Flows originating directly from an external IP targeting the physical honeypot. These are mathematically proven attacks. |
-| **Tier 2** | `Attack_Associated` | **High (95%+)** | Flows originating from an IP that has hit the honeypot (Tier 1), but are targeting other benign IPs on the ISP. Proves lateral movement and wide-net scanning. |
-| **Tier 3** | `Benign_Verified` | **High (95%+)** | Flows originating from the ISP targeting known, strictly validated Hyperscaler infrastructure (Google, Cloudflare, Meta). Guarantees clean negative-class data. |
-| **Tier 4** | `Unverified` | **Medium** | Normal flows flagged by AbuseIPDB (Score > 25) or behavioral anomaly heuristics (e.g., massive port sweeps). |
-| **Tier 5** | `Benign_Assumed` | **Baseline** | Background internet noise representing standard user traffic, possessing no threat indicators or anomalous behavioral flags. |
+| **T1046** — Network Service Scanning | Discovery | 40,315,265 | 95.5% |
+| **T1190** — Exploit Public-Facing App | Initial Access | 1,383,535 | 3.3% |
+| **T1110** — Brute Force | Credential Access | 294,023 | 0.7% |
+| **T1110.001** — Password Guessing | Credential Access | 209,974 | 0.5% |
+| **T1021.002** — SMB / Lateral Movement | Lateral Movement | 3,106 | 0.007% |
+
+**Total MITRE-mapped flows:** 83,566,235 (59.0% of full dataset)
+
+### Attack Breadth
+
+| Metric | Value |
+|---|---|
+| Unique destination ports targeted | **64,084** |
+| Peak distinct attack types in one day | **14,841** (July 18, 2026) |
+| Attacker countries | **60** |
+| Unique attacker IPs | **13,638** |
+
+### Services Under Active Attack
+
+| Service | Protocol/Port | Attack Pattern | Scale |
+|---|---|---|---|
+| HTTPS | TCP/443 | Probe + Exploitation (T1190) | 526K flows |
+| HTTP | TCP/80 | Probe + Exploitation (T1190) | 464K flows |
+| Redis | TCP/6379 | Unauthorized access probe | 206K flows |
+| SIP/VoIP | UDP/5060 | Protocol abuse scanning | 193K flows |
+| SSH | TCP/22 | Password brute force (T1110.001) | 188K flows |
+| HTTP-alt | TCP/8080 | Probe + Exploitation | 211K flows |
+| MySQL | TCP/3306 | Credential brute force | 115K flows |
+| WinRM | TCP/5985 | Remote execution probe | 60K flows |
+| PostgreSQL | TCP/5432 | Credential brute force | 58K flows |
+| MongoDB | TCP/27017 | Unauthorized access probe | 51K flows |
+| Elasticsearch | TCP/9200 | Data exfiltration probe | 48K flows |
+| VNC | TCP/5900 | Credential brute force | 35K flows |
+| FTP | TCP/21 | Credential brute force | 35K flows |
+
+### Top Attacker Countries
+
+| Country | Flows | Unique IPs | Context |
+|---|---|---|---|
+| Netherlands (NL) | 7,015,519 | 223 | VPN/Tor exit infrastructure |
+| Singapore (SG) | 2,909,298 | 89 | Cloud hosting, botnet C2 |
+| United States (US) | 2,395,021 | 1,286 | Diverse hosting providers |
+| Romania (RO) | 1,102,818 | 16 | Concentrated campaigns |
+| Bosnia (BA) | 684,019 | 1 | Single high-volume attacker |
+| United Kingdom (GB) | 337,256 | 321 | |
+| Bulgaria (BG) | 173,875 | 33 | |
+| Germany (DE) | 170,678 | 131 | |
+| China (CN) | 88,037 | 53 | |
+| Sweden (SE) | 82,089 | 7 | |
 
 ---
 
-## 3. File Structure & Cross-File Correlation
+## 4. Complete Feature Dictionary
 
-To facilitate efficient ML training, the dataset is exported into three correlated files per 5-minute window. These three files map back to the same exact temporal snapshot of the network and are intrinsically linked by the attacker IP addresses.
+### 4.1 Raw Flow Fields (NetFlow v9)
 
-### 3.1 The `_attacks` File (The Ground Truth)
-Contains all **Tier 1 (`Attack_Verified`)** flows. 
-- **Correlation:** Every source IP in this file physically hit the honeypot during the 5-minute window. This file acts as the undeniable "patient zero" for the timeframe.
+| Column | Type | Description |
+|---|---|---|
+| `flow_start` | TIMESTAMP | Flow start time (UTC) |
+| `duration_s` | DOUBLE | Flow duration in seconds |
+| `protocol` | VARCHAR | Transport protocol (`TCP`, `UDP`, `ICMP`) |
+| `src_ip` | VARCHAR | Source IP address |
+| `src_port` | DOUBLE | Source port number |
+| `dst_ip` | VARCHAR | Destination IP address |
+| `dst_port` | DOUBLE | Destination port number |
+| `packets` | VARCHAR | Total packets in flow |
+| `bytes` | VARCHAR | Total bytes (all values are clean integers, BIGINT-castable) |
+| `tcp_flags` | VARCHAR | TCP flags string (`SAF`, `.AP.S.`, etc.) |
+| `tos` | VARCHAR | Type of Service byte |
 
-### 3.2 The `_suspicious` File (The Associated Threats)
-Contains **Tier 2 (`Attack_Associated`)** and **Tier 4 (`Unverified`)** flows.
-- **Correlation:** When an attacker IP is identified in the `_attacks` file, the pipeline automatically scans the entire ISP routing table for any *other* traffic originating from that same IP during the 5-minute window. This file reveals the attacker's broader campaign (e.g., scanning other customers on the ISP) before or after they hit the honeypot.
+### 4.2 Computed Rate Features (Verified Correct)
 
-### 3.3 The `_normal` File (The Negative Class)
-Contains **Tier 3 (`Benign_Verified`)** and **Tier 5 (`Benign_Assumed`)** flows.
-- **Correlation:** These flows are mathematically guaranteed to originate from IPs that *do not exist* in the `_attacks` file. They are extracted from the exact same 5-minute window to provide a temporally accurate "negative class." By providing the background noise occurring at the precise moment the attacks were happening, ML models learn to differentiate an active attacker from normal traffic patterns.
+| Column | Type | Formula | Notes |
+|---|---|---|---|
+| `bytes_per_sec` | BIGINT | `ROUND(bytes / duration_s)` | Fixed 2026-08-12: was bits/s in original pipeline |
+| `packets_per_sec` | DOUBLE | `packets / duration_s` | 0 for zero-duration SYN scans |
+| `bytes_per_packet` | BIGINT | `ROUND(bytes / packets)` | Average packet payload size |
 
----
+> **Note on zero-duration flows:** Single-packet SYN scans have `duration_s = 0`. Rate columns are set to `0` (not NaN) to prevent division-by-zero. These flows have `flag_syn = 1`, `flag_ack = 0` — a forensically important pattern indicating automated reconnaissance.
 
-## 4. Comprehensive Feature Dictionary (Schema)
+### 4.3 Categorical Classification Features
 
-The dataset provides **38 deeply engineered features** per flow, formatted perfectly for ML vectorization.
+| Column | Values | Description |
+|---|---|---|
+| `src_port_category` | `well-known` / `registered` / `dynamic` | Source port bucket |
+| `dst_port_category` | `well-known` / `registered` / `dynamic` | Destination port bucket |
+| `flow_duration_class` | `instant` / `sub-second` / `short` / `medium` / `long` / `persistent` | Duration bin |
 
-### 4.1 Flow Structural Metrics
-These metrics represent the raw physical properties of the network connection.
-- `flow_start`: ISO-8601 Timestamp of the flow initiation (UTC/Local).
-- `duration_s`: Total active time of the flow in seconds.
-- `protocol`: Transport protocol string (`TCP`, `UDP`, `ICMP`, `ICMPv6`).
-- `src_ip` / `dst_ip`: IP routing addresses (anonymized for internal traffic).
-- `src_port` / `dst_port`: Network ports.
-- `packets`: Total number of packets transferred.
-- `bytes`: Total payload and header volume in bytes.
+### 4.4 TCP Flag Decomposition (Binary ML Features)
 
-### 4.2 Computed Velocity & Derived Metrics
-Rates are pre-calculated to allow models to detect high-velocity volumetric attacks immediately.
-- `bytes_per_sec`: Total bytes divided by `duration_s`.
-- `packets_per_sec`: Total packets divided by `duration_s`.
-- `bytes_per_packet`: Average packet size (useful for detecting payload-heavy exploits vs empty scans).
-- `src_port_category` / `dst_port_category`: Categorical grouping (`well-known` [0-1023], `registered` [1024-49151], `dynamic`).
-- `flow_duration_class`: Binned duration mapping (`instant`, `short`, `long`, `persistent`).
+| Column | Values | Description |
+|---|---|---|
+| `flag_syn` | 0/1 | SYN flag set |
+| `flag_ack` | 0/1 | ACK flag set |
+| `flag_fin` | 0/1 | FIN flag set |
+| `flag_rst` | 0/1 | RST flag set |
+| `flag_psh` | 0/1 | PSH flag set |
+| `flag_urg` | 0/1 | URG flag set |
 
-### 4.3 Granular TCP Flag Decomposition
-Unlike legacy datasets that group flags into a single arbitrary hex string, APEX-IDS2026 unpacks them into individual binary features for direct model ingestion:
-- `flag_syn`, `flag_ack`, `flag_fin`, `flag_rst`, `flag_psh`, `flag_urg` (Binary 0/1).
+### 4.5 Zeek Deep Packet Inspection Features
 
-### 4.4 Deep Packet Inspection (Zeek DPI Metrics)
-Unlike standard NetFlow datasets which lack Layer 7 context, APEX-IDS2026 integrates a parallel Zeek DPI engine (via a TZSP mirror). To circumvent MikroTik DNAT routing (which rewrites destination IPs) and time drift, Zeek data is merged into NetFlow deterministically using a **NAT-immune 5-minute time bucket** on `(src_ip, dst_port, protocol)`. 
-Furthermore, the Zeek DPI engine is architected to eliminate offline packet-capture vulnerabilities: it utilizes a Python-injected **5-second heartbeat Ethernet frame** to ensure offline clock synchronization, preventing flow-state freezing during network silence, and enforces a strict 60-second connection timeout to ensure rapid buffer flushing prior to NetFlow integration.
-- `iat_mean`: The mean inter-arrival time (IAT) of packets within the flow (in seconds). Crucial for identifying automated C2 cadence versus human interaction.
-- `iat_std`: The standard deviation of the inter-arrival time.
-- `payload_entropy`: Shannon entropy (0.0 to 8.0) of the connection payload. High entropy (>7.0) strongly indicates encrypted C2 channels, obfuscated data, or packed malware payloads.
-- `dns_query`: The specific domain name queried, allowing models to correlate malicious IP infrastructure with dynamic DNS or DGA (Domain Generation Algorithms).
-- `init_win_bytes_forward`: The initial TCP window size requested by the sender. Valuable for OS-fingerprinting and distinguishing scanner frameworks (like Nmap or Masscan) from legitimate browsers.
+Available where `zeek_available = True` (50.48% of flows, 24 of 44 days).
 
-### 4.5 Threat Taxonomy & MITRE ATT&CK Mappings
-- `label`: Primary target variable (`Attack_Verified`, `Attack_Associated`, `Benign_Verified`, `Benign_Assumed`, `Unverified`).
-- `attack_type`: Specific vector identified (e.g., `SSH-Brute`, `HTTP-Probe`, `Port-8081-Scan`).
-- `attack_category`: Broader grouping (`reconnaissance`, `brute-force`, `lateral-movement`).
-- `mitre_technique`: Direct mapping to the MITRE ATT&CK framework (e.g., `T1046` Network Service Discovery).
-- `mitre_tactic`: MITRE parent tactic (e.g., `discovery`, `credential-access`).
-- `confidence`: The semantic tier-level confidence (e.g., `multi-layer-verified`, `attacker-associated`).
-- `evidence_source`: The system rule that applied the label (e.g., `honeypot:port-match`, `safe-dest:Cloudflare`).
+| Column | Type | Description |
+|---|---|---|
+| `zeek_available` | BOOLEAN | `True` = Zeek was running; DPI columns are valid |
+| `iat_mean` | DOUBLE | Mean inter-arrival time of packets (seconds) |
+| `iat_std` | DOUBLE | Standard deviation of IAT |
+| `payload_entropy` | DOUBLE | Shannon entropy (0–8); >7.0 suggests encrypted/obfuscated payload |
+| `dns_query` | VARCHAR | DNS query string if DNS traffic detected |
+| `init_win_bytes_forward` | DOUBLE | Initial TCP window size — useful for OS fingerprinting |
 
-### 4.6 Contextual Threat Intelligence (Enrichment Layer)
-- `threat_intel_score`: Reputation score (0-100) pulled dynamically via the AbuseIPDB API.
-- `country`: GeoIP mapping of the attacker (ISO 3166-1 alpha-2).
-- `behavioral_flags`: Heuristic tags capturing aggressive behaviors like `scan-like:port-sweep(10)` or `scan-like:single-pkt-tcp`.
-- `flow_file`: The origin manifest file to maintain perfect auditability back to the raw `nfcapd` data.
+### 4.6 Label and Taxonomy Columns
 
----
-
-## 5. Modern Threat Landscape & Known Data Characteristics
-
-When evaluating the dataset, data scientists must be aware that modern 2026 botnets behave differently than the threats of 2015. **Certain "missing" or "zero" values in this dataset are critical forensic features.**
-
-1. **The Instantaneous SYN Scan Phenomenon:** 
-   Millions of `Attack_Verified` rows represent highly distributed, automated SYN Scans. Because they consist of a single packet meant to test a port, their `duration_s` is exactly `00:00:00.000`. Consequently, `bytes_per_sec` and `packets_per_sec` are recorded as `0` to prevent division-by-zero errors. Furthermore, because the TCP handshake is never completed, `flag_ack` and `flag_fin` will be `0`, while `flag_syn` will be `1`. Finally, because inter-arrival time requires at least two packets, and an incomplete TCP handshake has zero payload, Zeek will logically record `iat_mean`, `iat_std`, and `payload_entropy` as `0.0`. **Models must learn that a 0-second, SYN-only flow is a strong indicator of reconnaissance.**
-
-2. **Threat Intelligence API Rate Limits:** 
-   To maintain processing speed across 141.8 million flows, the pipeline utilizes API limits. If the daily Threat Intelligence quota is exhausted during a massive DDoS event, `threat_intel_score` and `country` will gracefully fallback to empty/null values.
-
-3. **Behavioral Flag Optimization:** 
-   `behavioral_flags` are intentionally bypassed for `Attack_Verified` flows. Because their malicious intent is already physically proven by hitting the honeypot, the compute resources are saved, resulting in empty values for this column on Tier 1 data.
-
-4. **Zeek DPI Sensor Outage (`zeek_available` flag):**
-   The Zeek Network Analysis Framework (NAF) experienced a silent crash between **July 11 and July 26** (16 days), and was not yet running / was unstable on June 21–22, August 1, and August 3. During these windows, DPI columns (`iat_mean`, `iat_std`, `payload_entropy`, `dns_query`, `init_win_bytes_forward`) are legitimately `0.0` or `null` — the values were never captured.
-
-   Rather than imputing synthetic values (which would fabricate ground truth that never existed), every Parquet file in the dataset carries a `zeek_available` boolean column:
-   - `zeek_available = True` → Zeek was running; DPI columns are valid (71.6M flows, 24 days)
-   - `zeek_available = False` → Zeek was offline; DPI columns are correctly empty (70.2M flows, 20 days)
-
-   **Researchers using DPI features must filter on `zeek_available = True`.** The outage window is also a built-in robustness test: researchers can evaluate how well their IDS performs when DPI features suddenly disappear — a realistic operational scenario.
+| Column | Type | Values / Description |
+|---|---|---|
+| `label` | VARCHAR | `Attack_Verified`, `Attack_Associated`, `Benign_Verified`, `Benign_Assumed`, `Unverified` |
+| `attack_type` | VARCHAR | Specific vector: `SSH-Brute`, `HTTPS-Probe`, `Redis-Probe`, `Port-9200-Scan`, etc. |
+| `attack_category` | VARCHAR | `reconnaissance`, `brute-force`, `web-attack`, `service-probe`, `lateral-movement`, `benign` |
+| `mitre_technique` | VARCHAR | MITRE ATT&CK ID: `T1046`, `T1190`, `T1110`, `T1110.001`, `T1021.002` |
+| `mitre_tactic` | VARCHAR | `discovery`, `initial-access`, `credential-access`, `lateral-movement` |
+| `confidence` | VARCHAR | `honeypot-verified`, `attacker-associated`, `safe-dest:*`, `assumed-clean` |
+| `evidence_source` | VARCHAR | Labeling rule: `honeypot:port-match`, `safe-dest:Cloudflare` |
+| `threat_intel_score` | DOUBLE | AbuseIPDB score 0–100 |
+| `country` | VARCHAR | GeoIP country code (ISO 3166-1 alpha-2) |
+| `behavioral_flags` | VARCHAR | Heuristic anomaly tags: `scan-like:port-sweep(10)` |
+| `flow_file` | VARCHAR | Source nfcapd filename for full audit trail |
 
 ---
 
-## 6. Technical Distribution & Integration
+## 5. Known Data Characteristics
 
-APEX-IDS2026 is engineered specifically for modern Big Data and MLOps pipelines. Managing 141.8 million flows (38.6 Gigabytes of data) requires state-of-the-art analytical tools.
+### 5.1 Zero-Duration SYN Scan Flows
+Millions of `Attack_Verified` flows are automated SYN probe attempts — a single packet with no TCP handshake:
+- `duration_s = 0`
+- `bytes_per_sec = 0`, `packets_per_sec = 0`
+- `flag_syn = 1`, `flag_ack = 0`, `flag_fin = 0`
+- `iat_mean = 0`, `payload_entropy = 0` (no payload, no multi-packet IAT)
 
-- **Format:** `Apache Parquet` (via PyArrow).
-- **Compression:** Snappy compression, resulting in a **90% reduction in disk footprint** compared to raw CSVs.
-- **Analytics Engine (DuckDB):** The dataset is designed to be queried using **DuckDB**, an open-source, in-process SQL OLAP database. DuckDB allows data scientists to run complex SQL aggregations on thousands of `.parquet` files directly from disk with zero memory overhead and zero server cost.
-- **Integration:** Columnar vectorization ensures the data can be loaded directly into Pandas, Polars, Apache Spark, or Dask with strict schema typing (eliminating arbitrary `object` to `string` parsing errors).
+**Models must learn this pattern.** A zero-duration, SYN-only flow is a high-confidence indicator of automated reconnaissance.
+
+### 5.2 Missing Per-Packet Directional Statistics
+NetFlow v9 captures aggregated flow-level statistics. The Mikrotik exporter sends unidirectional flows (confirmed by binary nfcapd analysis). This means fwd/bwd packet length stats, active/idle times, and subflow statistics — as provided by CIC-IDS2017's CICFlowMeter — are not recoverable from this dataset.
+
+This is an architectural constraint of NetFlow-based large-scale collection. The trade-off is 50× the scale of PCAP-based datasets.
+
+### 5.3 Zeek DPI Availability Gap
+The Zeek DPI engine had a silent crash between July 11–26 (16 days) and was not running on June 21–22, August 1, and August 3. DPI columns are `0.0` / `null` on these days. The `zeek_available` flag distinguishes valid DPI data from missing data. **Never impute these values** — their absence is itself a feature (the network had no layer-7 visibility during those days, a realistic operational scenario).
+
+### 5.4 Threat Intelligence API Gaps
+For flows processed during rate-limiting periods, `threat_intel_score` and `country` may be empty/null. This affects less than 1% of flows.
 
 ---
 
-## 7. Privacy & GDPR Compliance
+## 6. Technical Distribution Format
 
-The dataset is strictly compliant with privacy regulations regarding network interception:
-- **Zero Payload Inspection:** Only Layer 3/Layer 4 metadata (NetFlow headers) is captured. No packet payloads, user data, passwords, or PII are recorded.
-- **Cryptographic IP Anonymization:** A dedicated processing layer replaces all internal ISP client IP addresses with consistent cryptographic hashes. This protects local user privacy while perfectly preserving the mathematical IP relationship graphs required for Graph Neural Network (GNN) and topological ML training.
+| Property | Value |
+|---|---|
+| **Primary format** | Apache Parquet (PyArrow, Snappy compression) |
+| **Query engine** | DuckDB (recommended) — handles 141.8M flows with zero memory pressure |
+| **Partition scheme** | `date=YYYY-MM-DD / type={attacks,suspicious,normal}` |
+| **Total Parquet files** | 34,997 |
+| **Total compressed size** | ~38.6 GB |
+| **TimeSeries FaaC** | 44 Parquet files, 58,319 1-minute bins |
+
+```python
+# Minimal usage example
+import duckdb
+df = duckdb.query("""
+    SELECT * FROM read_parquet('path/to/parquet_dataset/*/*/*.parquet', 
+                                union_by_name=true)
+    WHERE label = 'Attack_Verified'
+      AND zeek_available = True
+    LIMIT 100000
+""").df()
+```
+
+---
+
+## 7. Privacy & Compliance
+
+- **Zero payload inspection:** Only Layer 3/4 metadata (NetFlow headers) is captured. No packet contents, passwords, or PII are recorded.
+- **IP anonymization:** Internal ISP client IP addresses are replaced with consistent cryptographic hashes, preserving graph structure while protecting user privacy.
+- **Attacker IPs:** External attacker IPs are preserved in full, as these represent confirmed threat actor infrastructure with no privacy protection expectation.
+
+---
+
+## 8. Data Quality History
+
+| Date | Fix Applied | Scale |
+|---|---|---|
+| 2026-08-07 | `zeek_available` flag added to all Parquet files | 34,997 files |
+| 2026-08-08 | Normal partition contamination removal | 697,727 flows reclassified |
+| 2026-08-08 | Attack_Associated label correction | 492,755 flows corrected |
+| 2026-08-08 | TimeSeries FaaC regenerated with correct schema | 44 FaaC files |
+| 2026-08-12 | `bytes` SI-suffix normalization (`"11.2 M"` → `11200000`) | 568,935 rows, 11,671 files |
+| 2026-08-12 | `bytes_per_sec` corrected from bits/s → bytes/s | 23,342 files (all attack+suspicious) |
 
 <br>
-<i>For commercial licensing, enterprise evaluation samples, or inquiries regarding the Live Threat Intelligence Feed, please contact the APEX-IDS Data Distribution Team.</i>
 
-</div>
+*For academic access, citation information, or collaboration inquiries, contact the APEX-IDS Research Team.*

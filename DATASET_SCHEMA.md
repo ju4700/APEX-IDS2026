@@ -1,156 +1,236 @@
 # APEX-IDS2026: Dataset Schema Reference
 
+> **All column types and statistics verified from live DuckDB queries (2026-08-13).**
+
 ## Overview
 
-APEX-IDS2026 is a research-grade network intrusion detection dataset
-built from **real-world NetFlow traffic** collected from a live production
-network with an integrated MikroTik honeypot. Unlike lab-generated datasets
-(CICIDS2017, NSL-KDD), all attacks are real and labels carry zero false
-positives via honeypot ground truth.
+APEX-IDS2026 is a research-grade network intrusion detection dataset built from **real-world NetFlow traffic** collected from a live production ISP network with an integrated MikroTik honeypot. All Tier 1 attacks are verified by physical honeypot correlation — zero false positives.
 
-**Collection period:** 44 days (June–August 2026)
-**Collection point:** MikroTik router → nfcapd (NetFlow v5/v9)
-**Honeypot IP:** 103.148.176.62
-**Labeling method:** Honeypot correlation with multi-tier confidence
+| Property | Value |
+|---|---|
+| Collection period | 44 days — June 21 to August 3, 2026 |
+| Total flows | 141,841,235 |
+| Collection point | MikroTik RouterOS → NetFlow v9 → nfcapd |
+| Honeypot IP | 103.148.176.62 |
+| Labeling method | Honeypot correlation + 5-tier confidence architecture |
+| Parquet files | 34,997 files across 3 partition types |
 
-## File Structure
-
-```
-labeled/
-  YYYY-MM-DD/
-    nfcapd.YYYYMMDDHHMI_attacks.csv      ← Tier 1: honeypot-verified
-    nfcapd.YYYYMMDDHHMI_suspicious.csv   ← Tier 2: attacker-associated
-    nfcapd.YYYYMMDDHHMI_normal.csv       ← Tier 3: normal-sampled
-```
+---
 
 ## Labeling Tiers
 
-| Tier | Label        | Confidence            | Description                                               | FP Rate               |
-| ---- | ------------ | --------------------- | --------------------------------------------------------- | --------------------- |
-| 1    | `attack`     | `honeypot-verified`   | Flows FROM attacker TO honeypot IP                        | **0%** (ground truth) |
-| 2    | `suspicious` | `attacker-associated` | ALL other flows FROM confirmed attacker IP in same window | Very low              |
-| 3    | `normal`     | `normal-sampled`      | Random sample of flows NOT from any known attacker        | Low FN possible       |
+| Tier | Label | Flows | Confidence | Description | FP Rate |
+|---|---|---|---|---|---|
+| 1 | `Attack_Verified` | 42,205,903 | Absolute | Flow FROM attacker IP TO honeypot, destination port matched | **0%** |
+| 2 | `Attack_Associated` | 41,446,346 | High (95%+) | Same attacker IP, different destination | Very low |
+| 3 | `Benign_Verified` | 26,901,115 | High (95%+) | Flows to validated safe infrastructure | Low |
+| 4 | `Benign_Assumed` | 16,672,439 | Baseline | No threat indicators, no anomaly flags | Lowest |
+| 5 | `Unverified` | 14,374,050 | Medium | AbuseIPDB flagged OR behavioral anomaly detected | Unknown |
 
-"To ensure the purity of the negative class (normal traffic), we performed a global cross-window attacker IP validation. All 13,638 unique attacker IPs confirmed across the 44-day collection period were compiled into a global deny-list. Any flow in the normal partition whose source IP appeared in this global deny-list was reclassified as Attack_Associated and moved to the suspicious partition. This process identified and reclassified 697,727 flows (4.758% of the Unverified normal partition), with negligible impact on Benign_Assumed (0.017%) and Benign_Verified (0.125%) sub-classes. The resulting normal partition carries a provably zero-contamination guarantee for Tier 1 attacker IPs."
+**Normal partition purity:** A global cross-window IP deny-list containing all 13,638 confirmed attacker IPs was applied. **697,727 contamination flows** were removed from the normal partition and reclassified to Attack_Associated, resulting in a provably zero-contamination negative class.
 
-## Column Schema (39 columns)
+---
 
-### Raw Flow Fields (from nfdump)
+## Parquet Partition Structure
 
-| Column       | Type      | Description                 | Example                   |
-| ------------ | --------- | --------------------------- | ------------------------- |
-| `flow_start` | timestamp | Flow start time             | `2026-06-05 18:23:45.123` |
-| `duration_s` | float     | Flow duration in seconds    | `0.352`                   |
-| `protocol`   | string    | Transport protocol          | `TCP`, `UDP`, `ICMP`      |
-| `src_ip`     | string    | Source IP address           | `45.227.253.130`          |
-| `src_port`   | int       | Source port                 | `54321`                   |
-| `dst_ip`     | string    | Destination IP address      | `103.148.176.62`          |
-| `dst_port`   | int       | Destination port            | `22`                      |
-| `packets`    | int       | Total packets in flow       | `6`                       |
-| `bytes`      | int       | Total bytes in flow         | `480`                     |
-| `tcp_flags`  | string    | TCP flag string from nfdump | `.AP.S.`                  |
-| `tos`        | int       | Type of Service / DSCP byte | `0`                       |
+```
+parquet_dataset/
+└── date=YYYY-MM-DD/           ← 44 date partitions
+    ├── type=attacks/          ← Attack_Verified flows
+    ├── type=suspicious/       ← Attack_Associated + Unverified flows
+    └── type=normal/           ← Benign_Verified + Benign_Assumed flows
+```
 
-### Computed Rate Features
+**Load example:**
+```python
+import duckdb
+con = duckdb.connect()
+df = con.execute("""
+    SELECT * FROM read_parquet('path/to/parquet_dataset/*/*/*.parquet',
+                                union_by_name=true)
+    WHERE date BETWEEN '2026-06-23' AND '2026-07-10'  -- Zeek Golden Era 1
+""").df()
+```
 
-| Column             | Type  | Description          | Formula            |
-| ------------------ | ----- | -------------------- | ------------------ |
-| `bytes_per_sec`    | float | Throughput           | bytes / duration   |
-| `packets_per_sec`  | float | Packet rate          | packets / duration |
-| `bytes_per_packet` | float | Average payload size | bytes / packets    |
+---
 
-### Deep Packet Inspection (Zeek Integration)
+## Column Schema (38 columns)
 
-_Merged deterministically using a NAT-immune `(src_ip, dst_port, protocol, 5min_time_bucket)` key._
+### 1. Raw Flow Fields (from nfdump / NetFlow v9)
+
+| Column | Type | Description | Example |
+|---|---|---|---|
+| `flow_start` | TIMESTAMP | Flow start time (UTC) | `2026-06-23 14:22:05.431` |
+| `duration_s` | DOUBLE | Flow duration in seconds | `0.352` |
+| `protocol` | VARCHAR | Transport protocol | `TCP`, `UDP`, `ICMP` |
+| `src_ip` | VARCHAR | Source IP address | `45.227.253.130` |
+| `src_port` | DOUBLE | Source port | `54321` |
+| `dst_ip` | VARCHAR | Destination IP address | `103.148.176.62` |
+| `dst_port` | DOUBLE | Destination port | `22` |
+| `packets` | VARCHAR | Total packets in flow | `6` |
+| `bytes` | VARCHAR | Total bytes in flow (BIGINT-castable) | `480` |
+| `tcp_flags` | VARCHAR | TCP flag string from nfdump | `.AP.SF` |
+| `tos` | VARCHAR | Type of Service / DSCP byte | `0` |
+
+> **Note on `bytes` type:** The column is stored as `VARCHAR` in Parquet (for cross-partition compatibility) but all values are clean integers castable to `BIGINT`. SI-suffix values (`"11.2 M"`) were normalized in a data quality pass on 2026-08-12. Use `TRY_CAST(bytes AS BIGINT)` in queries.
+
+---
+
+### 2. Computed Rate Features
+
+All three columns were recomputed from the fixed bytes values and are uniformly correct across all partitions.
+
+| Column | Type | Description | Formula |
+|---|---|---|---|
+| `bytes_per_sec` | BIGINT | Throughput in bytes per second | `ROUND(bytes / duration_s)` |
+| `packets_per_sec` | DOUBLE | Packet rate | `packets / duration_s` |
+| `bytes_per_packet` | BIGINT | Average packet size in bytes | `ROUND(bytes / packets)` |
+
+> **Data quality fix (2026-08-12):** The original pipeline stored `bytes_per_sec` as bits/second (bytes × 8 / duration) in the `attacks` and `suspicious` partitions. This was corrected across all 23,342 affected files. The column now uniformly contains bytes/second.
+
+> **Zero-duration flows:** Single-packet SYN scans have `duration_s = 0`. For these, `bytes_per_sec = 0` and `packets_per_sec = 0` (division-by-zero prevention). This is intentional and forensically meaningful — SYN-only, zero-duration flows are a strong indicator of automated reconnaissance.
+
+---
+
+### 3. Zeek Deep Packet Inspection (DPI)
+
+Zeek data is merged deterministically using a NAT-immune 5-minute time bucket key: `(src_ip, dst_port, protocol, time_bucket)`.
 
 > [!IMPORTANT]
-> **`zeek_available` flag:** The Zeek DPI engine experienced a silent outage between **July 11 and July 26** (and on June 21–22, Aug 1, Aug 3). All DPI columns (`iat_mean`, `iat_std`, `payload_entropy`, `dns_query`, `init_win_bytes_forward`) will be `0.0` / `null` on days where `zeek_available = False`. **Always filter on `zeek_available = True` before using DPI features in ML models.**
+> **`zeek_available` flag:** Zeek DPI was not running for all 44 days. DPI columns (`iat_mean`, `iat_std`, `payload_entropy`, `dns_query`, `init_win_bytes_forward`) are `0.0` / `null` on days where `zeek_available = False`. **Always filter `WHERE zeek_available = True` before using DPI features in ML models.**
 
-| Column                   | Type   | Description                                                                                             | Example |
-| ------------------------ | ------ | ------------------------------------------------------------------------------------------------------- | ------- |
-| `zeek_available`         | bool   | **True** = Zeek was running when this flow was captured; **False** = DPI columns are legitimately empty | `True`  |
-| `iat_mean`               | float  | Mean inter-arrival time (s). `0.0` on days when `zeek_available=False` or for SYN-only scans.           | `0.045` |
-| `iat_std`                | float  | Standard deviation of IAT                                                                               | `0.012` |
-| `payload_entropy`        | float  | Shannon entropy of payload (0–8). `0.0` for SYN-only flows or when Zeek offline.                        | `4.057` |
-| `dns_query`              | string | Extracted DNS resolution request                                                                        | `none`  |
-| `init_win_bytes_forward` | int    | Initial TCP window size (forward)                                                                       | `64240` |
+| Column | Type | Description | Example |
+|---|---|---|---|
+| `zeek_available` | BOOLEAN | True = Zeek was running; DPI columns are valid | `True` |
+| `iat_mean` | DOUBLE | Mean inter-arrival time (seconds) | `0.045` |
+| `iat_std` | DOUBLE | Std deviation of IAT | `0.012` |
+| `payload_entropy` | DOUBLE | Shannon entropy of payload (0–8) | `4.057` |
+| `dns_query` | VARCHAR | Extracted DNS query (if applicable) | `none` |
+| `init_win_bytes_forward` | DOUBLE | Initial TCP window size (forward direction) | `64240` |
 
-**Zeek DPI availability by date:**
+**Zeek DPI coverage:**
 
-| Period                 | Dates                        | `zeek_available` | Flows     |
-| ---------------------- | ---------------------------- | ---------------- | --------- |
-| Zeek offline (startup) | Jun 21 – Jun 22              | `False`          | 4.3M      |
-| **Golden Era 1**       | Jun 23 – Jul 10              | **`True`**       | **55.8M** |
-| Zeek silent crash      | Jul 11 – Jul 26              | `False`          | 59.3M     |
-| **Golden Era 2**       | Jul 27 – Aug 2 (excl. Aug 1) | **`True`**       | **15.8M** |
-| Collection end         | Aug 1, Aug 3                 | `False`          | 3.6M      |
+| Period | Dates | `zeek_available` | Flows |
+|---|---|---|---|
+| Zeek offline (startup) | Jun 21–22 | `False` | 4.3M |
+| **Golden Era 1** | Jun 23 – Jul 10 | **`True`** | **55.8M** |
+| Zeek silent crash | Jul 11 – Jul 26 | `False` | 59.3M |
+| **Golden Era 2** | Jul 27 – Aug 2 | **`True`** | **15.8M** |
+| Collection end | Aug 1, Aug 3 | `False` | 3.6M |
 
-### TCP Flag Decomposition (binary features)
+---
 
-| Column     | Type | Description      |
-| ---------- | ---- | ---------------- |
-| `flag_syn` | 0/1  | SYN flag present |
-| `flag_ack` | 0/1  | ACK flag present |
-| `flag_fin` | 0/1  | FIN flag present |
-| `flag_rst` | 0/1  | RST flag present |
-| `flag_psh` | 0/1  | PSH flag present |
-| `flag_urg` | 0/1  | URG flag present |
+### 4. TCP Flag Decomposition (binary)
 
-### Categorical Features
+| Column | Type | Description |
+|---|---|---|
+| `flag_syn` | INTEGER | SYN flag (1 = present) |
+| `flag_ack` | INTEGER | ACK flag |
+| `flag_fin` | INTEGER | FIN flag |
+| `flag_rst` | INTEGER | RST flag |
+| `flag_psh` | INTEGER | PSH flag |
+| `flag_urg` | INTEGER | URG flag |
 
-| Column                | Type   | Values                                                           | Description                           |
-| --------------------- | ------ | ---------------------------------------------------------------- | ------------------------------------- |
-| `src_port_category`   | string | `well-known`, `registered`, `dynamic`                            | Source port range classification      |
-| `dst_port_category`   | string | `well-known`, `registered`, `dynamic`                            | Destination port range classification |
-| `flow_duration_class` | string | `instant`, `sub-second`, `short`, `medium`, `long`, `persistent` | Duration bucket                       |
+---
 
-### Label Columns
+### 5. Categorical Classification Features
 
-| Column               | Type   | Description                                                                                            |
-| -------------------- | ------ | ------------------------------------------------------------------------------------------------------ |
-| `label`              | string | Primary label: `Attack_Verified`, `Attack_Associated`, etc.                                            |
-| `attack_type`        | string | Specific type: `SSH-Brute`, `Port-445-Scan`, `normal`, etc.                                            |
-| `attack_category`    | string | Category: `brute-force`, `reconnaissance`, `web-attack`, `service-probe`, `lateral-movement`, `benign` |
-| `mitre_technique`    | string | MITRE ATT&CK technique ID: `T1110`, `T1046`, `T1190`, etc.                                             |
-| `mitre_tactic`       | string | MITRE ATT&CK tactic: `credential-access`, `discovery`, `initial-access`, etc.                          |
-| `confidence`         | string | Labeling confidence tier                                                                               |
-| `evidence_source`    | string | How the label was derived: `honeypot:port-match`                                                       |
-| `threat_intel_score` | float  | AbuseIPDB reputation score (0-100)                                                                     |
-| `country`            | string | Attacker GeoIP                                                                                         |
-| `behavioral_flags`   | string | Heuristic tags (e.g., `scan-like:port-sweep`)                                                          |
-| `flow_file`          | string | Source nfcapd file name                                                                                |
+| Column | Type | Values | Description |
+|---|---|---|---|
+| `src_port_category` | VARCHAR | `well-known`, `registered`, `dynamic` | Source port range bucket |
+| `dst_port_category` | VARCHAR | `well-known`, `registered`, `dynamic` | Destination port range bucket |
+| `flow_duration_class` | VARCHAR | `instant`, `sub-second`, `short`, `medium`, `long`, `persistent` | Duration bin |
 
-## MITRE ATT&CK Mapping
+**Destination port category distribution (Attack_Verified):**
+- `registered` (1024–49151): 69.2% of attack flows
+- `well-known` (0–1023): 24.6% of attack flows
+- `dynamic` (49152+): 6.2% of attack flows
 
-| Attack Type   | Technique | Tactic            | Category         |
-| ------------- | --------- | ----------------- | ---------------- |
-| SSH-Brute     | T1110.001 | credential-access | brute-force      |
-| Telnet-Brute  | T1110     | credential-access | brute-force      |
-| FTP-Brute     | T1110     | credential-access | brute-force      |
-| RDP-Brute     | T1110.001 | credential-access | brute-force      |
-| MSSQL-Brute   | T1110     | credential-access | brute-force      |
-| MySQL-Brute   | T1110     | credential-access | brute-force      |
-| VNC-Brute     | T1110     | credential-access | brute-force      |
-| HTTP-Probe    | T1190     | initial-access    | web-attack       |
-| HTTPS-Probe   | T1190     | initial-access    | web-attack       |
-| SMB-Probe     | T1021.002 | lateral-movement  | lateral-movement |
-| Port-\*-Scan  | T1046     | discovery         | reconnaissance   |
-| Redis-Probe   | T1046     | discovery         | service-probe    |
-| MongoDB-Probe | T1046     | discovery         | service-probe    |
+---
 
-## Advantages Over Existing Datasets
+### 6. Label and Taxonomy Columns
 
-| Feature                | APEX-IDS2026          | CICIDS2017   | NSL-KDD    | UNSW-NB15 |
-| ---------------------- | --------------------- | ------------ | ---------- | --------- |
-| Traffic source         | Real-world            | Lab          | Lab (1999) | Lab       |
-| Attack source          | Real attackers        | Synthetic    | Synthetic  | Synthetic |
-| Label method           | Honeypot ground truth | CICFlowMeter | Manual     | IXIA      |
-| False positive rate    | 0% (Tier 1)           | Unknown      | Unknown    | Unknown   |
-| Collection period      | 44 days               | 5 days       | N/A        | 31 hours  |
-| Multi-tier confidence  | ✓                     | ✗            | ✗          | ✗         |
-| MITRE ATT&CK mapping   | ✓                     | ✗            | ✗          | ✗         |
-| Normal flow samples    | ✓                     | ✓            | ✓          | ✓         |
-| TCP flag decomposition | ✓                     | ✓            | Partial    | ✓         |
-| Zeek Layer 7 DPI       | ✓ (5 new features)    | ✗            | ✗          | ✗         |
-| DPI availability flag  | ✓ (`zeek_available`)  | ✗            | ✗          | ✗         |
-| Real-time collection   | ✓ (5-min windows)     | ✗            | ✗          | ✗         |
+| Column | Type | Description | Example |
+|---|---|---|---|
+| `label` | VARCHAR | Primary tier label | `Attack_Verified`, `Benign_Assumed` |
+| `attack_type` | VARCHAR | Specific attack vector | `SSH-Brute`, `HTTPS-Probe`, `Redis-Probe` |
+| `attack_category` | VARCHAR | Attack category | `brute-force`, `reconnaissance`, `web-attack`, `service-probe`, `lateral-movement` |
+| `mitre_technique` | VARCHAR | MITRE ATT&CK technique ID | `T1046`, `T1190`, `T1110.001` |
+| `mitre_tactic` | VARCHAR | MITRE ATT&CK tactic | `discovery`, `initial-access`, `credential-access`, `lateral-movement` |
+| `confidence` | VARCHAR | Labeling confidence tier | `honeypot-verified`, `attacker-associated` |
+| `evidence_source` | VARCHAR | Rule that applied the label | `honeypot:port-match`, `safe-dest:Cloudflare` |
+| `threat_intel_score` | DOUBLE | AbuseIPDB reputation score (0–100) | `87.0` |
+| `country` | VARCHAR | GeoIP country code (ISO 3166-1) | `NL`, `SG`, `US` |
+| `behavioral_flags` | VARCHAR | Heuristic tags | `scan-like:port-sweep(10)` |
+| `flow_file` | VARCHAR | Source nfcapd filename | `nfcapd.202606232040` |
+
+---
+
+## MITRE ATT&CK Mapping (Verified)
+
+| Attack Type | Technique | Tactic | Category | Flows |
+|---|---|---|---|---|
+| Port-\*-Scan (any port) | T1046 | discovery | reconnaissance | 40,315,265 |
+| HTTP-Probe, HTTPS-Probe | T1190 | initial-access | web-attack | 1,383,535 |
+| SSH-Brute, RDP-Brute | T1110.001 | credential-access | brute-force | 209,974 |
+| MySQL-Brute, VNC-Brute, Telnet-Brute, FTP-Brute, SMTP | T1110 | credential-access | brute-force | 294,023 |
+| SMB-Probe (port 445) | T1021.002 | lateral-movement | lateral-movement | 3,106 |
+| Redis-Probe, MongoDB-Probe, Elasticsearch-Probe | T1046 | discovery | service-probe | part of T1046 |
+
+**MITRE coverage:** 83,566,235 flows (59.0% of total) have a MITRE technique assigned.
+
+---
+
+## TimeSeries FaaC Parquet (for LSTM/Transformer)
+
+A secondary time-series Parquet dataset aggregates all flows into 1-minute bins for volumetric anomaly detection.
+
+**Location:** `F:/Apex-IDS/labeled/TimeSeries/TimeSeries_FaaC_YYYY-MM-DD.parquet`
+
+| Column | Description |
+|---|---|
+| `window_start` | 1-minute bin start time |
+| `total_bytes` | Sum of all bytes in the window |
+| `total_packets` | Sum of all packets |
+| `total_connections` | Count of distinct flows |
+| `unique_src_ips` | Unique source IP count |
+| `attack_count` | Attack_Verified flows in window |
+| `bytes_skewness` | Skewness of bytes distribution |
+| `bytes_kurtosis` | Kurtosis of bytes distribution |
+| `avg_entropy` | Mean payload entropy (Zeek windows only) |
+| `max_entropy` | Max payload entropy |
+
+---
+
+## Data Quality History
+
+| Date | Fix | Files Affected | Rows Affected |
+|---|---|---|---|
+| 2026-08-07 | Zeek gap flag (`zeek_available`) added | 34,997 | 141.8M |
+| 2026-08-08 | Normal partition contamination removal | Normal partition | 697,727 reclassified |
+| 2026-08-08 | Attack_Associated label correction | attacks+suspicious | 492,755 corrected |
+| 2026-08-08 | TimeSeries FaaC regeneration | 44 FaaC files | 58,319 rows |
+| 2026-08-12 | bytes SI-suffix normalization | 11,671 files | 568,935 rows fixed |
+| 2026-08-12 | bytes_per_sec bits→bytes fix | 23,342 files | All attack+suspicious |
+
+---
+
+## Comparison with CIC-IDS2017
+
+| Feature | APEX-IDS2026 | CIC-IDS2017 |
+|---|---|---|
+| Traffic source | Real internet (live ISP) | Lab simulation |
+| Attack source | 13,638 real attacker IPs | 6 researchers simulating |
+| Label method | Physical honeypot ground truth | CICFlowMeter heuristic |
+| False positive rate | 0% (Tier 1) | Unknown (contamination confirmed) |
+| Collection period | 44 days | 5 days |
+| Total flows | 141,841,235 | ~2,830,743 |
+| Class balance | 1.38:1 | ~5.4:1 |
+| Infinity values | 0 | 4,376 |
+| Negative durations | 0 | 115 |
+| MITRE ATT&CK | ✓ 5 techniques | ✗ |
+| Zeek L7 DPI | ✓ (5 features, 50.48% coverage) | ✗ |
+| Temporal span | 44 days (time-series capable) | 5 days |
+| IP addresses preserved | ✓ | ✗ (hashed) |
+| GeoIP enrichment | ✓ 60 countries | ✗ |
+| Fwd/bwd packet stats | ✗ (NetFlow limitation) | ✓ (PCAP-based) |
