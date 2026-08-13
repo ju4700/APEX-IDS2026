@@ -10,7 +10,7 @@
 
 APEX-IDS2026 is a research-grade network intrusion detection dataset built on live production network infrastructure. Unlike existing benchmark datasets (NSL-KDD, UNSW-NB15, CIC-IDS2017), which rely on synthetically generated attack traffic in controlled laboratory environments, APEX-IDS2026 captures genuine threat actor behavior from the live internet using a MikroTik router honeypot integrated with a continuous, automated 44-day collection pipeline.
 
-The dataset captures the full spectrum of opportunistic internet-facing attacks: **64,084 unique destination ports targeted**, **10+ named services under active brute-force and exploitation**, **60 attacker countries**, and **5 distinct MITRE ATT&CK techniques** spanning discovery, initial access, credential access, and lateral movement. Every Tier 1 attack flow is mathematically proven — sourced from an IP that physically hit the honeypot during the same 5-minute capture window.
+The dataset captures the full spectrum of opportunistic internet-facing attacks: **64,084 unique destination ports targeted**, **10+ named services under active brute-force and exploitation**, **60 attacker countries**, and **5 distinct MITRE ATT&CK techniques** spanning discovery, initial access, credential access, and lateral movement. Every Tier 1 attack flow is mathematically proven - sourced from an IP that physically hit the honeypot during the same 5-minute capture window.
 
 The central contribution is its **5-Tier Deterministic Labeling Architecture** combined with **MITRE ATT&CK mapping** and **Zeek Deep Packet Inspection**. The dataset offers a secondary **Feature as a Counter (FaaC)** time-series Parquet dataset powered by DuckDB aggregations, optimized for LSTM volumetric anomaly detectors.
 
@@ -20,15 +20,15 @@ The central contribution is its **5-Tier Deterministic Labeling Architecture** c
 
 The machine learning community in cybersecurity has long depended on datasets that are no longer representative of the contemporary threat landscape:
 
-- **NSL-KDD** derives from the 1999 DARPA dataset — an era predating modern botnets, encrypted C2, and cloud-based attack infrastructure.
-- **UNSW-NB15** was generated using commercial traffic generators in a closed network — synthetic by construction.
-- **CIC-IDS2017** relies on 2–3 researchers simulating attacks in a lab, producing label contamination (~20%), Infinity values in 4,376 rows, 115 negative-duration flows, and no preserved IP addresses or timestamps.
+- **NSL-KDD** derives from the 1999 DARPA dataset - an era predating modern botnets, encrypted C2, and cloud-based attack infrastructure.
+- **UNSW-NB15** was generated using commercial traffic generators in a closed network - synthetic by construction.
+- **CIC-IDS2017** relies on 2-3 researchers simulating attacks in a lab, producing label contamination (~20%), Infinity values in 4,376 rows, 115 negative-duration flows, and no preserved IP addresses or timestamps.
 
 APEX-IDS2026 addresses these gaps:
-- **Real attackers** — 13,638 confirmed threat actor IPs from 60 countries
-- **Real services under attack** — Redis, MongoDB, Elasticsearch, SSH, MySQL, PostgreSQL, HTTP/HTTPS, SMTP, FTP, VNC, RDP, Telnet, SIP, WinRM
-- **Zero label contamination** — ground truth verified by physical honeypot correlation
-- **Temporal continuity** — 44 consecutive days enabling concept drift and time-series analysis
+- **Real attackers** - 13,638 confirmed threat actor IPs from 60 countries
+- **Real services under attack** - Redis, MongoDB, Elasticsearch, SSH, MySQL, PostgreSQL, HTTP/HTTPS, SMTP, FTP, VNC, RDP, Telnet, SIP, WinRM
+- **Zero label contamination** - ground truth verified by physical honeypot correlation
+- **Temporal continuity** - 44 consecutive days enabling concept drift and time-series analysis
 
 ---
 
@@ -44,7 +44,7 @@ Every flow in the dataset is assigned to exactly one of five tiers based on a st
 | 4 | `Benign_Assumed` | 16,672,439 | Baseline | No threat indicators, no anomalous behavior |
 | 5 | `Unverified` | 14,374,050 | Medium | AbuseIPDB flagged or behavioral anomaly |
 
-**Label Purity:** The normal partition underwent global cross-window attacker IP validation. All 13,638 confirmed attacker IPs were compiled into a global deny-list. This process identified and reclassified **697,727 contamination flows** from the normal partition into the suspicious partition — resulting in a provably zero-contamination negative class.
+**Label Purity:** The normal partition underwent global cross-window attacker IP validation. All 13,638 confirmed attacker IPs were compiled into a global deny-list. This process identified and reclassified **697,727 contamination flows** from the normal partition into the suspicious partition - resulting in a provably zero-contamination negative class.
 
 ---
 
@@ -53,7 +53,7 @@ Every flow in the dataset is assigned to exactly one of five tiers based on a st
 | Property | Value |
 |---|---|
 | **Total flows** | 141,841,235 |
-| **Collection period** | June 21 – August 3, 2026 (44 days) |
+| **Collection period** | June 21 - August 3, 2026 (44 days) |
 | **Attack_Verified flows** | 42,205,903 |
 | **Class balance (Benign:Attack)** | 1.38:1 (near-optimal for ML) |
 | **Unique attacker IPs** | 13,638 |
@@ -84,11 +84,11 @@ APEX-IDS2026 captures the full spectrum of opportunistic attacks observed by int
 ### MITRE ATT&CK Coverage
 | Technique | Tactic | Flows | % |
 |---|---|---|---|
-| **T1046** — Network Service Scanning | Discovery | 40,315,265 | 95.5% |
-| **T1190** — Exploit Public-Facing Application | Initial Access | 1,383,535 | 3.3% |
-| **T1110** — Brute Force | Credential Access | 294,023 | 0.7% |
-| **T1110.001** — Password Guessing | Credential Access | 209,974 | 0.5% |
-| **T1021.002** — SMB/Windows Admin Shares | Lateral Movement | 3,106 | 0.007% |
+| **T1046** - Network Service Scanning | Discovery | 40,315,265 | 95.5% |
+| **T1190** - Exploit Public-Facing Application | Initial Access | 1,383,535 | 3.3% |
+| **T1110** - Brute Force | Credential Access | 294,023 | 0.7% |
+| **T1110.001** - Password Guessing | Credential Access | 209,974 | 0.5% |
+| **T1021.002** - SMB/Windows Admin Shares | Lateral Movement | 3,106 | 0.007% |
 
 ### Attack Categories
 | Category | Flows | Key Services |
@@ -151,20 +151,20 @@ Each labeled flow contains 38+ features across 6 categories. Full reference: [DA
 
 ```
 F:/Apex-IDS/
-├── parquet_dataset/           ← Primary dataset (DuckDB Partitioned Parquet)
+├── parquet_dataset/           <- Primary dataset (DuckDB Partitioned Parquet)
 │   └── date=YYYY-MM-DD/
-│       ├── type=attacks/      ← Tier 1: Attack_Verified flows
-│       ├── type=suspicious/   ← Tier 2+3: Attack_Associated + Unverified
-│       └── type=normal/       ← Tier 4+5: Benign_Verified + Benign_Assumed
-├── labeled/                   ← Source labeled CSVs (5-min window granularity)
+│       ├── type=attacks/      <- Tier 1: Attack_Verified flows
+│       ├── type=suspicious/   <- Tier 2+3: Attack_Associated + Unverified
+│       └── type=normal/       <- Tier 4+5: Benign_Verified + Benign_Assumed
+├── labeled/                   <- Source labeled CSVs (5-min window granularity)
 │   └── YYYY-MM-DD/
 │       ├── nfcapd.*_attacks.csv
 │       ├── nfcapd.*_suspicious.csv
 │       └── nfcapd.*_normal.csv
 └── metadata/
     ├── dataset_manifest.csv
-    ├── conn.log               ← Zeek connection log
-    ├── features.log           ← Zeek custom features (incl. init_win_bytes_forward)
+    ├── conn.log               <- Zeek connection log
+    ├── features.log           <- Zeek custom features (incl. init_win_bytes_forward)
     └── labeling_summary.csv
 ```
 
@@ -179,7 +179,7 @@ F:/Apex-IDS/labeled/TimeSeries/
 ## 7. Usage Recommendations
 
 ### Binary Classification (Attack vs Normal)
-Use `Attack_Verified` (Tier 1) as positive class + `Benign_Verified` (Tier 3) as negative class. This is the **Golden Subset** — 0% label noise, 1.57:1 balance.
+Use `Attack_Verified` (Tier 1) as positive class + `Benign_Verified` (Tier 3) as negative class. This is the **Golden Subset** - 0% label noise, 1.57:1 balance.
 
 ```python
 import duckdb
@@ -201,7 +201,7 @@ df = duckdb.query("""
 ```
 
 ### Time-Series / LSTM Anomaly Detection
-Load the FaaC time-series Parquet files — 1-minute bins with volumetric counters:
+Load the FaaC time-series Parquet files - 1-minute bins with volumetric counters:
 ```python
 df = duckdb.query("""
     SELECT * FROM read_parquet('F:/Apex-IDS/labeled/TimeSeries/*.parquet',
@@ -218,11 +218,11 @@ df = duckdb.query("""
 
 | Issue | Status | Details |
 |---|---|---|
-| SI-suffix bytes (`"11.2 M"`) | ✅ Fixed (2026-08-12) | 568,935 rows normalized across 11,671 files |
-| `bytes_per_sec` was bits/s in attack+suspicious | ✅ Fixed (2026-08-12) | 23,342 files rewritten; now uniformly bytes/s |
-| Normal partition label contamination | ✅ Fixed | 697,727 attack flows removed from normal partition |
-| Attack_Associated label correction | ✅ Fixed | 492,755 promoted flows given correct attack types |
-| Infinity/NaN values | ✅ None | 0 Infinity, 0 NaN in any column |
+| SI-suffix bytes (`"11.2 M"`) | Yes Fixed (2026-08-12) | 568,935 rows normalized across 11,671 files |
+| `bytes_per_sec` was bits/s in attack+suspicious | Yes Fixed (2026-08-12) | 23,342 files rewritten; now uniformly bytes/s |
+| Normal partition label contamination | Yes Fixed | 697,727 attack flows removed from normal partition |
+| Attack_Associated label correction | Yes Fixed | 492,755 promoted flows given correct attack types |
+| Infinity/NaN values | Yes None | 0 Infinity, 0 NaN in any column |
 | Missing fwd/bwd packet stats | ℹ️ By design | NetFlow architecture: Mikrotik sends unidirectional flows |
 | TCP window size (partial) | ℹ️ Zeek only | `init_win_bytes_forward` available where `zeek_available=True` |
 
@@ -231,11 +231,11 @@ df = duckdb.query("""
 ## 9. Infrastructure
 
 - **Collection server:** `synapstream` (Fedora Linux, x86-64)
-- **NetFlow sensor:** MikroTik RouterOS → NetFlow v9 → nfcapd
+- **NetFlow sensor:** MikroTik RouterOS -> NetFlow v9 -> nfcapd
 - **Honeypot IP:** `103.148.176.62`
 - **Zeek DPI:** TZSP mirror on same interface
-- **Pipeline schedule:** `*/6 * * * *` — correlation runs every 6 minutes
-- **FaaC schedule:** `10 0 * * *` — time-series aggregation daily at midnight
+- **Pipeline schedule:** `*/6 * * * *` - correlation runs every 6 minutes
+- **FaaC schedule:** `10 0 * * *` - time-series aggregation daily at midnight
 
 ---
 

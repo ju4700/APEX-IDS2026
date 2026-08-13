@@ -4,13 +4,13 @@
 
 ## Overview
 
-APEX-IDS2026 is a research-grade network intrusion detection dataset built from **real-world NetFlow traffic** collected from a live production ISP network with an integrated MikroTik honeypot. All Tier 1 attacks are verified by physical honeypot correlation — zero false positives.
+APEX-IDS2026 is a research-grade network intrusion detection dataset built from **real-world NetFlow traffic** collected from a live production ISP network with an integrated MikroTik honeypot. All Tier 1 attacks are verified by physical honeypot correlation - zero false positives.
 
 | Property | Value |
 |---|---|
-| Collection period | 44 days — June 21 to August 3, 2026 |
+| Collection period | 44 days - June 21 to August 3, 2026 |
 | Total flows | 141,841,235 |
-| Collection point | MikroTik RouterOS → NetFlow v9 → nfcapd |
+| Collection point | MikroTik RouterOS -> NetFlow v9 -> nfcapd |
 | Honeypot IP | 103.148.176.62 |
 | Labeling method | Honeypot correlation + 5-tier confidence architecture |
 | Parquet files | 34,997 files across 3 partition types |
@@ -35,10 +35,10 @@ APEX-IDS2026 is a research-grade network intrusion detection dataset built from 
 
 ```
 parquet_dataset/
-└── date=YYYY-MM-DD/           ← 44 date partitions
-    ├── type=attacks/          ← Attack_Verified flows
-    ├── type=suspicious/       ← Attack_Associated + Unverified flows
-    └── type=normal/           ← Benign_Verified + Benign_Assumed flows
+└── date=YYYY-MM-DD/           <- 44 date partitions
+    ├── type=attacks/          <- Attack_Verified flows
+    ├── type=suspicious/       <- Attack_Associated + Unverified flows
+    └── type=normal/           <- Benign_Verified + Benign_Assumed flows
 ```
 
 **Load example:**
@@ -86,9 +86,9 @@ All three columns were recomputed from the fixed bytes values and are uniformly 
 | `packets_per_sec` | DOUBLE | Packet rate | `packets / duration_s` |
 | `bytes_per_packet` | BIGINT | Average packet size in bytes | `ROUND(bytes / packets)` |
 
-> **Data quality fix (2026-08-12):** The original pipeline stored `bytes_per_sec` as bits/second (bytes × 8 / duration) in the `attacks` and `suspicious` partitions. This was corrected across all 23,342 affected files. The column now uniformly contains bytes/second.
+> **Data quality fix (2026-08-12):** The original pipeline stored `bytes_per_sec` as bits/second (bytes x 8 / duration) in the `attacks` and `suspicious` partitions. This was corrected across all 23,342 affected files. The column now uniformly contains bytes/second.
 
-> **Zero-duration flows:** Single-packet SYN scans have `duration_s = 0`. For these, `bytes_per_sec = 0` and `packets_per_sec = 0` (division-by-zero prevention). This is intentional and forensically meaningful — SYN-only, zero-duration flows are a strong indicator of automated reconnaissance.
+> **Zero-duration flows:** Single-packet SYN scans have `duration_s = 0`. For these, `bytes_per_sec = 0` and `packets_per_sec = 0` (division-by-zero prevention). This is intentional and forensically meaningful - SYN-only, zero-duration flows are a strong indicator of automated reconnaissance.
 
 ---
 
@@ -104,7 +104,7 @@ Zeek data is merged deterministically using a NAT-immune 5-minute time bucket ke
 | `zeek_available` | BOOLEAN | True = Zeek was running; DPI columns are valid | `True` |
 | `iat_mean` | DOUBLE | Mean inter-arrival time (seconds) | `0.045` |
 | `iat_std` | DOUBLE | Std deviation of IAT | `0.012` |
-| `payload_entropy` | DOUBLE | Shannon entropy of payload (0–8) | `4.057` |
+| `payload_entropy` | DOUBLE | Shannon entropy of payload (0-8) | `4.057` |
 | `dns_query` | VARCHAR | Extracted DNS query (if applicable) | `none` |
 | `init_win_bytes_forward` | DOUBLE | Initial TCP window size (forward direction) | `64240` |
 
@@ -112,10 +112,10 @@ Zeek data is merged deterministically using a NAT-immune 5-minute time bucket ke
 
 | Period | Dates | `zeek_available` | Flows |
 |---|---|---|---|
-| Zeek offline (startup) | Jun 21–22 | `False` | 4.3M |
-| **Golden Era 1** | Jun 23 – Jul 10 | **`True`** | **55.8M** |
-| Zeek silent crash | Jul 11 – Jul 26 | `False` | 59.3M |
-| **Golden Era 2** | Jul 27 – Aug 2 | **`True`** | **15.8M** |
+| Zeek offline (startup) | Jun 21-22 | `False` | 4.3M |
+| **Golden Era 1** | Jun 23 - Jul 10 | **`True`** | **55.8M** |
+| Zeek silent crash | Jul 11 - Jul 26 | `False` | 59.3M |
+| **Golden Era 2** | Jul 27 - Aug 2 | **`True`** | **15.8M** |
 | Collection end | Aug 1, Aug 3 | `False` | 3.6M |
 
 ---
@@ -142,8 +142,8 @@ Zeek data is merged deterministically using a NAT-immune 5-minute time bucket ke
 | `flow_duration_class` | VARCHAR | `instant`, `sub-second`, `short`, `medium`, `long`, `persistent` | Duration bin |
 
 **Destination port category distribution (Attack_Verified):**
-- `registered` (1024–49151): 69.2% of attack flows
-- `well-known` (0–1023): 24.6% of attack flows
+- `registered` (1024-49151): 69.2% of attack flows
+- `well-known` (0-1023): 24.6% of attack flows
 - `dynamic` (49152+): 6.2% of attack flows
 
 ---
@@ -159,7 +159,7 @@ Zeek data is merged deterministically using a NAT-immune 5-minute time bucket ke
 | `mitre_tactic` | VARCHAR | MITRE ATT&CK tactic | `discovery`, `initial-access`, `credential-access`, `lateral-movement` |
 | `confidence` | VARCHAR | Labeling confidence tier | `honeypot-verified`, `attacker-associated` |
 | `evidence_source` | VARCHAR | Rule that applied the label | `honeypot:port-match`, `safe-dest:Cloudflare` |
-| `threat_intel_score` | DOUBLE | AbuseIPDB reputation score (0–100) | `87.0` |
+| `threat_intel_score` | DOUBLE | AbuseIPDB reputation score (0-100) | `87.0` |
 | `country` | VARCHAR | GeoIP country code (ISO 3166-1) | `NL`, `SG`, `US` |
 | `behavioral_flags` | VARCHAR | Heuristic tags | `scan-like:port-sweep(10)` |
 | `flow_file` | VARCHAR | Source nfcapd filename | `nfcapd.202606232040` |
@@ -211,7 +211,7 @@ A secondary time-series Parquet dataset aggregates all flows into 1-minute bins 
 | 2026-08-08 | Attack_Associated label correction | attacks+suspicious | 492,755 corrected |
 | 2026-08-08 | TimeSeries FaaC regeneration | 44 FaaC files | 58,319 rows |
 | 2026-08-12 | bytes SI-suffix normalization | 11,671 files | 568,935 rows fixed |
-| 2026-08-12 | bytes_per_sec bits→bytes fix | 23,342 files | All attack+suspicious |
+| 2026-08-12 | bytes_per_sec bits->bytes fix | 23,342 files | All attack+suspicious |
 
 ---
 
@@ -228,9 +228,9 @@ A secondary time-series Parquet dataset aggregates all flows into 1-minute bins 
 | Class balance | 1.38:1 | ~5.4:1 |
 | Infinity values | 0 | 4,376 |
 | Negative durations | 0 | 115 |
-| MITRE ATT&CK | ✓ 5 techniques | ✗ |
-| Zeek L7 DPI | ✓ (5 features, 50.48% coverage) | ✗ |
+| MITRE ATT&CK | Yes 5 techniques | No |
+| Zeek L7 DPI | Yes (5 features, 50.48% coverage) | No |
 | Temporal span | 44 days (time-series capable) | 5 days |
-| IP addresses preserved | ✓ | ✗ (hashed) |
-| GeoIP enrichment | ✓ 60 countries | ✗ |
-| Fwd/bwd packet stats | ✗ (NetFlow limitation) | ✓ (PCAP-based) |
+| IP addresses preserved | Yes | No (hashed) |
+| GeoIP enrichment | Yes 60 countries | No |
+| Fwd/bwd packet stats | No (NetFlow limitation) | Yes (PCAP-based) |
