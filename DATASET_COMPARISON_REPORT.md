@@ -18,7 +18,7 @@ APEX-IDS2026 and CIC-IDS2017 are both labeled network intrusion detection datase
 | Property | APEX-IDS2026 | CIC-IDS2017 |
 |---|---|---|
 | **Total flows** | 141,841,235 | ~2,830,743 |
-| **Scale advantage** | **50× more flows** | Baseline |
+| **Scale advantage** | **50x more flows** | Baseline |
 | **Collection period** | 44 days | 5 days |
 | **Traffic source** | Real internet (live ISP honeypot) | Lab simulation |
 | **Attackers** | 13,638 real threat actors | 6 researchers |
@@ -26,10 +26,10 @@ APEX-IDS2026 and CIC-IDS2017 are both labeled network intrusion detection datase
 | **Class balance (benign:attack)** | **1.38:1** | ~5.4:1 |
 | **Infinity values** | **0** | 4,376 |
 | **Negative-duration flows** | **0** | 115 |
-| **MITRE ATT&CK mapping** | ✅ 5 techniques | ❌ |
-| **GeoIP enrichment** | ✅ | ❌ |
-| **Zeek L7 DPI** | ✅ (50.48% coverage) | ❌ |
-| **Fwd/Bwd packet stats** | ❌ (NetFlow limit) | ✅ (PCAP-based) |
+| **MITRE ATT&CK mapping** | Yes 5 techniques | No |
+| **GeoIP enrichment** | Yes | No |
+| **Zeek L7 DPI** | Yes (50.48% coverage) | No |
+| **Fwd/Bwd packet stats** | No (NetFlow limit) | Yes (PCAP-based) |
 
 ---
 
@@ -41,7 +41,7 @@ CIC-IDS2017 uses CICFlowMeter with heuristic labeling based on flow time windows
 
 - **Label contamination:** Attack flows incorrectly labeled as normal and vice versa
 - **CICFlowMeter bugs:** Produces `Infinity` values in `Flow Bytes/s` and `Flow Packets/s` columns (4,376 confirmed rows)
-- **Negative durations:** 115 flows with `Flow Duration < 0` — a physical impossibility
+- **Negative durations:** 115 flows with `Flow Duration < 0` - a physical impossibility
 - **No ground truth anchor:** Labels assigned by IP matching to a schedule, not verified by any independent system
 - **IP addresses removed:** Cannot audit which traffic came from which source
 
@@ -49,7 +49,7 @@ CIC-IDS2017 uses CICFlowMeter with heuristic labeling based on flow time windows
 
 | Tier | Label | Count | Method | FP Rate |
 |---|---|---|---|---|
-| 1 | Attack_Verified | 42,205,903 | Physical honeypot — port-matched | **0%** |
+| 1 | Attack_Verified | 42,205,903 | Physical honeypot - port-matched | **0%** |
 | 2 | Attack_Associated | 41,446,346 | Confirmed attacker IP, other destinations | Very low |
 | 3 | Benign_Verified | 26,901,115 | Validated safe destination infrastructure | Very low |
 | 4 | Benign_Assumed | 16,672,439 | No threat indicators, no anomalies | Lowest |
@@ -69,11 +69,11 @@ The dataset captures the full spectrum of opportunistic attacks observed by inte
 
 | Technique | Tactic | Flows | % |
 |---|---|---|---|
-| T1046 — Network Service Scanning | Discovery | 40,315,265 | 95.5% |
-| T1190 — Exploit Public-Facing Application | Initial Access | 1,383,535 | 3.3% |
-| T1110 — Brute Force | Credential Access | 294,023 | 0.7% |
-| T1110.001 — Password Guessing | Credential Access | 209,974 | 0.5% |
-| T1021.002 — SMB / Lateral Movement | Lateral Movement | 3,106 | 0.007% |
+| T1046 - Network Service Scanning | Discovery | 40,315,265 | 95.5% |
+| T1190 - Exploit Public-Facing Application | Initial Access | 1,383,535 | 3.3% |
+| T1110 - Brute Force | Credential Access | 294,023 | 0.7% |
+| T1110.001 - Password Guessing | Credential Access | 209,974 | 0.5% |
+| T1021.002 - SMB / Lateral Movement | Lateral Movement | 3,106 | 0.007% |
 
 **Services under active attack:**
 
@@ -96,7 +96,7 @@ The dataset captures the full spectrum of opportunistic attacks observed by inte
 - 64,084 unique destination ports targeted
 - 60 attacker countries
 - Peak single-day: 14,841 distinct attack types (July 18, 2026)
-- Attack volume trend: 118K/day (Day 1) → 1.5M/day (peak, Day 28)
+- Attack volume trend: 118K/day (Day 1) -> 1.5M/day (peak, Day 28)
 
 **What this dataset is optimized for:**
 - Perimeter/internet-facing IDS training
@@ -113,7 +113,7 @@ The dataset captures the full spectrum of opportunistic attacks observed by inte
 
 ### 4.2 CIC-IDS2017 Attack Coverage
 
-CIC-IDS2017 contains 15 attack types simulated over 5 days: DoS Hulk, PortScan, DDoS, DoS GoldenEye, FTP-Patator, SSH-Patator, DoS Slowloris, DoS Slowhttptest, Bot, Web Attack — Brute Force, Web Attack — XSS, Web Attack — Sql Injection, Infiltration, Heartbleed.
+CIC-IDS2017 contains 15 attack types simulated over 5 days: DoS Hulk, PortScan, DDoS, DoS GoldenEye, FTP-Patator, SSH-Patator, DoS Slowloris, DoS Slowhttptest, Bot, Web Attack - Brute Force, Web Attack - XSS, Web Attack - Sql Injection, Infiltration, Heartbleed.
 
 These are lab-generated attacks with no real attacker infrastructure. There is no geographic diversity, no MITRE mapping, and no real-world validation.
 
@@ -125,30 +125,30 @@ These are lab-generated attacks with no real attacker infrastructure. There is n
 
 | Feature | APEX-IDS2026 | CIC-IDS2017 | Notes |
 |---|---|---|---|
-| Flow duration | ✅ `duration_s` | ✅ `Flow Duration` | Both accurate |
-| Total bytes | ✅ `bytes` (BIGINT) | ✅ | CIC has direction split |
-| Total packets | ✅ `packets` | ✅ | CIC has direction split |
-| Bytes per second | ✅ `bytes_per_sec` | ✅ `Flow Bytes/s` | CIC has Inf values |
-| Packets per second | ✅ `packets_per_sec` | ✅ `Flow Packets/s` | CIC has Inf values |
-| Flow IAT mean | ✅ `iat_mean` (Zeek) | ✅ | APEX: Zeek-derived |
-| Flow IAT std | ✅ `iat_std` (Zeek) | ✅ | APEX: Zeek-derived |
-| TCP flags (6 flags) | ✅ All 6 binary | ✅ All 6 | Both complete |
-| Source/Dest port | ✅ | ✅ | |
-| Protocol | ✅ | ✅ | |
-| Payload entropy | ✅ `payload_entropy` | ❌ | APEX unique feature |
+| Flow duration | Yes `duration_s` | Yes `Flow Duration` | Both accurate |
+| Total bytes | Yes `bytes` (BIGINT) | Yes | CIC has direction split |
+| Total packets | Yes `packets` | Yes | CIC has direction split |
+| Bytes per second | Yes `bytes_per_sec` | Yes `Flow Bytes/s` | CIC has Inf values |
+| Packets per second | Yes `packets_per_sec` | Yes `Flow Packets/s` | CIC has Inf values |
+| Flow IAT mean | Yes `iat_mean` (Zeek) | Yes | APEX: Zeek-derived |
+| Flow IAT std | Yes `iat_std` (Zeek) | Yes | APEX: Zeek-derived |
+| TCP flags (6 flags) | Yes All 6 binary | Yes All 6 | Both complete |
+| Source/Dest port | Yes | Yes | |
+| Protocol | Yes | Yes | |
+| Payload entropy | Yes `payload_entropy` | No | APEX unique feature |
 
 ### 5.2 Features Unique to APEX-IDS2026
 
 | Feature | Column | Description |
 |---|---|---|
-| Payload entropy | `payload_entropy` | Shannon entropy (0–8) from Zeek |
+| Payload entropy | `payload_entropy` | Shannon entropy (0-8) from Zeek |
 | DNS correlation | `dns_query` | Extracted DNS queries per flow |
 | TCP window size | `init_win_bytes_forward` | Initial TCP window (Zeek, 50.48% coverage) |
 | Zeek availability flag | `zeek_available` | Explicit DPI coverage flag |
 | MITRE technique | `mitre_technique` | ATT&CK technique per flow |
 | MITRE tactic | `mitre_tactic` | ATT&CK tactic per flow |
 | Attack category | `attack_category` | 5-class attack taxonomy |
-| Threat intel score | `threat_intel_score` | AbuseIPDB score (0–100) |
+| Threat intel score | `threat_intel_score` | AbuseIPDB score (0-100) |
 | GeoIP country | `country` | ISO 3166-1 attacker country |
 | Behavioral flags | `behavioral_flags` | Heuristic anomaly tags |
 | Flow confidence | `confidence` | Tier-level confidence label |
@@ -160,14 +160,14 @@ These are lab-generated attacks with no real attacker infrastructure. There is n
 
 | Feature | CIC-IDS2017 | Why Missing in APEX-IDS2026 |
 |---|---|---|
-| Fwd/Bwd packet count | ✅ | NetFlow: Mikrotik sends unidirectional aggregated flows |
-| Fwd/Bwd byte count | ✅ | Same as above |
-| Fwd/Bwd packet length stats | ✅ | Requires PCAP — not available in NetFlow |
-| Packet length variance | ✅ | Requires per-packet data |
-| Active/Idle statistics | ✅ | Requires packet-level session tracking |
-| Subflow statistics | ✅ | Requires raw PCAP |
+| Fwd/Bwd packet count | Yes | NetFlow: Mikrotik sends unidirectional aggregated flows |
+| Fwd/Bwd byte count | Yes | Same as above |
+| Fwd/Bwd packet length stats | Yes | Requires PCAP - not available in NetFlow |
+| Packet length variance | Yes | Requires per-packet data |
+| Active/Idle statistics | Yes | Requires packet-level session tracking |
+| Subflow statistics | Yes | Requires raw PCAP |
 
-> **Note:** These are fundamental architectural limitations of NetFlow-based collection, shared by all large-scale flow-based datasets. They cannot be recovered post-capture. The trade-off is: NetFlow enables 50× the scale of PCAP-based datasets.
+> **Note:** These are fundamental architectural limitations of NetFlow-based collection, shared by all large-scale flow-based datasets. They cannot be recovered post-capture. The trade-off is: NetFlow enables 50x the scale of PCAP-based datasets.
 
 ---
 
@@ -179,16 +179,16 @@ These are lab-generated attacks with no real attacker infrastructure. There is n
 | Negative durations | **0** | 115 |
 | Label contamination | **0** (verified) | Confirmed present |
 | Class balance | **1.38:1** (near-optimal) | ~5.4:1 (imbalanced) |
-| IP addresses | ✅ Preserved (attacker IPs) | ❌ Removed |
-| Timestamps | ✅ Preserved, precise | Partially preserved |
-| Audit trail | ✅ Full flow file reference | ❌ |
+| IP addresses | Yes Preserved (attacker IPs) | No Removed |
+| Timestamps | Yes Preserved, precise | Partially preserved |
+| Audit trail | Yes Full flow file reference | No |
 
 ### Data Quality Fixes Applied (APEX-IDS2026)
 
 | Fix | Impact |
 |---|---|
 | bytes SI-suffix normalization | 568,935 rows corrected |
-| bytes_per_sec bits→bytes fix | 23,342 files (attack+suspicious partitions) |
+| bytes_per_sec bits->bytes fix | 23,342 files (attack+suspicious partitions) |
 | Normal partition contamination removal | 697,727 flows reclassified |
 | Attack_Associated label correction | 492,755 flows corrected |
 | TimeSeries FaaC regeneration | 44 files, 58,319 rows aligned |
@@ -203,8 +203,8 @@ These are lab-generated attacks with no real attacker infrastructure. There is n
 | Collection days | 44 | 5 |
 | Attacker diversity | 13,638 real IPs | 6 simulated |
 | Geographic diversity | 60 countries | 1 lab |
-| Time-series usability | ✅ 44-day span | Limited (5 days) |
-| Concept drift coverage | ✅ 44 days of evolving attack landscape | ❌ |
+| Time-series usability | Yes 44-day span | Limited (5 days) |
+| Concept drift coverage | Yes 44 days of evolving attack landscape | No |
 
 ---
 
@@ -233,12 +233,12 @@ These are lab-generated attacks with no real attacker infrastructure. There is n
 ## 9. Summary Assessment
 
 APEX-IDS2026 is a genuine improvement over CIC-IDS2017 in:
-- **Authenticity** — real attackers vs. simulated
-- **Scale** — 50× more data
-- **Label integrity** — 0% FP ground truth vs. unknown contamination
-- **Temporal span** — 44 days vs. 5 days
-- **Threat diversity** — 64,084 targeted ports, 60 countries, 5 MITRE tactics
-- **Enrichment** — MITRE mapping, GeoIP, threat intelligence, behavioral flags
+- **Authenticity** - real attackers vs. simulated
+- **Scale** - 50x more data
+- **Label integrity** - 0% FP ground truth vs. unknown contamination
+- **Temporal span** - 44 days vs. 5 days
+- **Threat diversity** - 64,084 targeted ports, 60 countries, 5 MITRE tactics
+- **Enrichment** - MITRE mapping, GeoIP, threat intelligence, behavioral flags
 
 CIC-IDS2017 remains the only option for research that specifically requires per-packet directional features (fwd/bwd byte counts, packet length variance, subflow statistics). This is a fundamental NetFlow architectural limitation that applies to all large-scale flow-based datasets.
 
