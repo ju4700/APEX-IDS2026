@@ -9,7 +9,6 @@ Mikrotik Scripts/**
 
 /paper
 /parquet
-/PipeLine
 .env
 __pycache__/
 *.pyc
