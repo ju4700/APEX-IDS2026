@@ -4,6 +4,10 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Zenodo upload staging folder (contains large Parquet file)
+zenodo_upload/
+
+
 # Virtual environments
 Machine Learnign/venv/
 venv/
