@@ -1,4 +1,4 @@
-﻿# APEX-IDS2026: A Large-Scale Real-World Network Perimeter Threat Dataset
+# APEX-IDS2026: A Large-Scale Real-World Network Perimeter Threat Dataset
 
 **Honeypot-Verified NetFlow Ground Truth with MITRE ATT&CK Mapping and Zeek Deep Packet Inspection**
 
@@ -22,7 +22,7 @@ Three primary contributions distinguish APEX-IDS2026 from existing benchmarks:
 
 ## 1. Motivation and Problem Statement
 
-The machine learning community in cybersecurity has long depended on datasets that are no longer representative of the contemporary threat landscape:
+The machine learning community in cybersecurity has long depended on datasets that are no longer representative of the current threat environment:
 
 - **NSL-KDD** derives from the 1999 DARPA dataset — an era predating modern botnets, encrypted C2, and cloud-based attack infrastructure.
 - **UNSW-NB15** was generated using commercial traffic generators in a closed network — synthetic by construction.
@@ -303,7 +303,10 @@ The full dataset (~4.15 GB compressed Parquet, 141,599,853 flows) is available o
 > **Note:** The `labeled/` directory containing the source CSV files (38.6 GB) is available upon request to the research team.
 
 
+**License:** Creative Commons Attribution 4.0 International (CC BY 4.0). You may use, modify, and redistribute freely with attribution.
+
 For the full academic evaluation and comparison with CIC-IDS2017, NSL-KDD, and UNSW-NB15, see [DATASET_COMPARISON_REPORT.md](DATASET_COMPARISON_REPORT.md).
+
 
 ---
 

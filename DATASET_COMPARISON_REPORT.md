@@ -1,4 +1,4 @@
-﻿# APEX-IDS2026 vs CIC-IDS2017: Comprehensive Comparison Report
+# APEX-IDS2026 vs CIC-IDS2017: Technical Comparison Report
 
 > **All APEX-IDS2026 statistics verified via live DuckDB queries on August 19, 2026.**  
 > CIC-IDS2017 statistics sourced from published literature and confirmed via dataset inspection.
@@ -203,7 +203,7 @@ These are lab-generated attacks with no real attacker infrastructure. There is n
 | Attacker diversity | 13,638 real IPs | 6 simulated |
 | Geographic diversity | 60 countries | 1 lab |
 | Time-series usability | Yes 44-day span | Limited (5 days) |
-| Concept drift coverage | Yes 44 days of evolving attack landscape | No |
+| Concept drift coverage | Yes — 44 days of shifting attack patterns | No |
 
 ---
 
@@ -215,7 +215,7 @@ These are lab-generated attacks with no real attacker infrastructure. There is n
 - Developing geographic/IP-context-aware detection
 - Time-series anomaly detection (LSTM/Transformer) over multi-week windows
 - Multi-class attack classification with MITRE ATT&CK taxonomy
-- Studying 2026 threat landscape (Redis, MongoDB, Elasticsearch, VoIP exploitation)
+- Studying 2026 threat environment (Redis, MongoDB, Elasticsearch, VoIP exploitation)
 
 ### Use CIC-IDS2017 when:
 - Reproducing prior published results that use CIC-style features

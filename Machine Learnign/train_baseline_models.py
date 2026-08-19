@@ -1,7 +1,7 @@
 ﻿"""
 train_baseline_models.py
 ========================
-Trains baseline ML models on the APEX-IDS2026 Golden Subset.
+Trains baseline ML models on the APEX-IDS2026 High-Confidence Subset.
 Produces publication-ready results for the dataset paper.
 
 Models trained:
@@ -69,7 +69,7 @@ FEATURES = [
 ]
 
 # ── Config (sampling) ─────────────────────────────────────────────────────────
-# Full Golden Subset has 69M rows but loading all into RAM requires ~8 GB.
+# Full High-Confidence Subset has 69M rows but loading all into RAM requires ~8 GB.
 # Tree-based models (RF, XGBoost) plateau after ~2-3M rows per class.
 # We draw a balanced stratified sample: SAMPLE_PER_CLASS rows per label.
 # Paper reports BOTH the full dataset size (69.1M) AND the training sample.
@@ -78,7 +78,7 @@ SAMPLE_PER_CLASS = 500_000   # 500k attack + 500k benign = 1M total (representat
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def load_data():
     print(f"Loading stratified sample ({SAMPLE_PER_CLASS:,} rows/class) from Parquet...")
-    print(f"  Full Golden Subset: 69,107,018 rows total")
+    print(f"  Full High-Confidence Subset: 69,107,018 rows total")
     t0 = time.time()
     con = duckdb.connect()
     cols = ", ".join(FEATURES + ["label_binary", "label_multiclass", "attack_type"])
@@ -162,7 +162,7 @@ def main():
     all_results = {}
 
     print_section("APEX-IDS2026 Baseline ML Training")
-    print(f"  Golden Subset : {GOLDEN_SUBSET}")
+    print(f"  High-Confidence Subset : {GOLDEN_SUBSET}")
     print(f"  Test split    : {TEST_SIZE * 100:.0f}%")
     print(f"  Random state  : {RANDOM_STATE}")
     print(f"  Features      : {len(FEATURES)} columns")
