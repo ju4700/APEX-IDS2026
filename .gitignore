@@ -1,14 +1,39 @@
-Machine Learnign/venv/
-Machine Learnign/data/
-Machine Learnign/output/*
-Machine Learnign/output/*.pkl
-!Machine Learnign/output/*.png
-Machine Learnign/data/parquet/**
-Machine Learnign/parquet/**
-Mikrotik Scripts/**
-
-/paper
-/parquet
-.env
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+Machine Learnign/venv/
+venv/
+.venv/
+
+# Sensitive credentials - NEVER commit
+.env
+*.key
+*.pem
+
+# Large data files - hosted separately
+Machine Learnign/data/
+Machine Learnign/data/parquet/**
+Machine Learnign/parquet/**
+
+# Build artifacts
+Machine Learnign/output/*.pkl
+Machine Learnign/output/*.model
+
+# Keep PNGs in output
+!Machine Learnign/output/*.png
+
+# Internal infra - not part of the dataset release
+Mikrotik Scripts/
+Competition/
+PipeLine/
+
+# Paper drafts - kept private until submission
+Paper/
+
+# Scratch / working files
+scratch/
+*.tmp

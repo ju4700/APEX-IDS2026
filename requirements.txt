@@ -1,0 +1,9 @@
+# Minimum requirements to load and query the dataset
+duckdb>=0.10.0
+pyarrow>=14.0.0
+pandas>=2.0.0
+numpy>=1.26.0
+
+# Baseline ML models
+scikit-learn>=1.4.0
+xgboost>=2.0.0

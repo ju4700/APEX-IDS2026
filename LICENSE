@@ -1,0 +1,39 @@
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+
+Copyright (c) 2026 APEX-IDS Research Team
+
+You are free to:
+
+  Share — copy and redistribute the material in any medium or format
+  Adapt — remix, transform, and build upon the material for any purpose,
+           even commercially
+
+Under the following terms:
+
+  Attribution — You must give appropriate credit, provide a link to the
+                license, and indicate if changes were made. You may do so
+                in any reasonable manner, but not in any way that suggests
+                the licensor endorses you or your use.
+
+  No additional restrictions — You may not apply legal terms or technological
+                               measures that legally restrict others from doing
+                               anything the license permits.
+
+Full license text: https://creativecommons.org/licenses/by/4.0/legalcode
+
+---
+
+When using this dataset in academic work, please cite:
+
+  APEX-IDS Research Team. (2026). APEX-IDS2026: A Large-Scale Real-World
+  Network Perimeter Threat Dataset with Honeypot-Verified Ground Truth.
+  Zenodo. https://doi.org/10.5281/zenodo.XXXXXXX
+
+---
+
+Privacy Note:
+
+All IP addresses in this dataset have been replaced with deterministic
+SHA256 cryptographic hashes. No raw IP addresses, packet payloads, or
+personally identifiable information are present in any released file.
+This dataset contains only Layer 3/4 flow-level metadata.
