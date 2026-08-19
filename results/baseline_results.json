@@ -1,0 +1,38 @@
+{
+  "rf_binary": {
+    "model": "Random Forest (Binary)",
+    "accuracy": 0.9966,
+    "f1_macro": 0.9964,
+    "f1_weighted": 0.9966,
+    "auc_roc": 0.9997,
+    "train_time_s": 10.4,
+    "classification_report": "              precision    recall  f1-score   support\n\n           0       0.99      1.00      1.00     38915\n           1       1.00      1.00      1.00     61073\n\n    accuracy                           1.00     99988\n   macro avg       1.00      1.00      1.00     99988\nweighted avg       1.00      1.00      1.00     99988\n"
+  },
+  "xgb_binary": {
+    "model": "XGBoost (Binary)",
+    "accuracy": 0.9953,
+    "f1_macro": 0.9951,
+    "f1_weighted": 0.9953,
+    "auc_roc": 0.9998,
+    "train_time_s": 1.9,
+    "classification_report": "              precision    recall  f1-score   support\n\n           0       0.99      0.99      0.99     38915\n           1       1.00      1.00      1.00     61073\n\n    accuracy                           1.00     99988\n   macro avg       0.99      1.00      1.00     99988\nweighted avg       1.00      1.00      1.00     99988\n"
+  },
+  "rf_multiclass": {
+    "model": "Random Forest (Multiclass)",
+    "accuracy": 0.9771,
+    "f1_macro": 0.6434,
+    "f1_weighted": 0.9739,
+    "auc_roc": null,
+    "train_time_s": 12.3,
+    "classification_report": "              precision    recall  f1-score   support\n\n           0       0.99      1.00      1.00     38915\n           1       0.97      0.99      0.98     57769\n           2       0.65      0.13      0.22       719\n           3       0.72      0.57      0.64      1988\n           4       0.85      0.59      0.70       592\n           5       1.00      0.20      0.33         5\n\n    accuracy                           0.98     99988\n   macro avg       0.86      0.58      0.64     99988\nweighted avg       0.97      0.98      0.97     99988\n"
+  },
+  "xgb_multiclass": {
+    "model": "XGBoost (Multiclass)",
+    "accuracy": 0.9754,
+    "f1_macro": 0.6346,
+    "f1_weighted": 0.9719,
+    "auc_roc": null,
+    "train_time_s": 10.0,
+    "classification_report": "              precision    recall  f1-score   support\n\n           0       0.99      0.99      0.99     38915\n           1       0.97      0.99      0.98     57769\n           2       0.64      0.11      0.19       719\n           3       0.72      0.55      0.63      1988\n           4       0.84      0.58      0.68       592\n           5       1.00      0.20      0.33         5\n\n    accuracy                           0.98     99988\n   macro avg       0.86      0.57      0.63     99988\nweighted avg       0.97      0.98      0.97     99988\n"
+  }
+}
