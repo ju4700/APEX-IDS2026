@@ -1,4 +1,4 @@
-﻿<center>
+<center>
 
 # APEX-IDS2026: A Large-Scale Real-World Network Perimeter Threat Dataset
 **Research Data Card & Technical Specification**
@@ -40,10 +40,9 @@ The defining feature of APEX-IDS2026 is its physical ground-truth correlation en
 
 ### 1.3 Zeek Deep Packet Inspection
 
-A parallel Zeek Network Analysis Framework engine runs on the same interface via TZSP mirroring. Zeek enriches flows with:
+A parallel Zeek Network Analysis Framework engine runs on the same interface via TZSP mirroring. Zeek adds context to flows with:
 - Inter-arrival time statistics (`iat_mean`, `iat_std`)
 - Shannon payload entropy (`payload_entropy`)
-- DNS query extraction (`dns_query`)
 - DNS query extraction (`dns_query`)
 
 Zeek data is merged deterministically using a NAT-immune key: `(src_ip, dst_port, protocol, 5min_bucket)`.

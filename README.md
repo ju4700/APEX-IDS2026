@@ -153,7 +153,7 @@ Baselines trained on a 1M-row stratified sample (500k attack + 500k benign) from
 | Random Forest (300 trees) | 99.57% | 99.55% | 99.95% | 10.4s |
 | XGBoost | 99.53% | 99.51% | 99.98% | 1.9s |
 
-> The high binary accuracy reflects a genuine physical reality: SYN scan flows (1 packet, 40 bytes, SYN-only flag) are fundamentally different from normal TCP sessions at the NetFlow level. This separation is legitimate and verifiable. A dumb majority-class baseline achieves only 60.96% accuracy — confirming the models are learning real patterns, not exploiting class imbalance.
+> The high binary accuracy reflects a genuine physical reality: SYN scan flows (1 packet, 40 bytes, SYN-only flag) are structurally distinct from normal TCP sessions at the NetFlow level. This separation is legitimate and verifiable. A dumb majority-class baseline achieves only 60.96% accuracy — confirming the models are learning real patterns, not exploiting class imbalance.
 
 ### Multiclass Classification (Attack Type)
 

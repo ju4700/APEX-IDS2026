@@ -7,7 +7,7 @@
 
 ## 1. Executive Summary
 
-APEX-IDS2026 and CIC-IDS2017 are both labeled network intrusion detection datasets, but they represent fundamentally different design philosophies. This report documents their differences across scale, label quality, attack diversity, feature completeness, and suitability for modern ML research.
+APEX-IDS2026 and CIC-IDS2017 are both labeled network intrusion detection datasets, but they represent entirely different eras of network security. This report documents their differences across scale, label quality, attack diversity, feature completeness, and suitability for modern ML research.
 
 **Verdict:** APEX-IDS2026 is superior in scale, label quality, temporal span, geographic diversity, and real-world authenticity. CIC-IDS2017 is superior in per-packet feature granularity (PCAP-based collection). Each dataset serves a different use case, and this report documents both honestly.
 
@@ -166,7 +166,7 @@ These are lab-generated attacks with no real attacker infrastructure. There is n
 | Active/Idle statistics | Yes | Requires packet-level session tracking |
 | Subflow statistics | Yes | Requires raw PCAP |
 
-> **Note:** These are fundamental architectural limitations of NetFlow-based collection, shared by all large-scale flow-based datasets. They cannot be recovered post-capture. The trade-off is: NetFlow enables 50x the scale of PCAP-based datasets.
+> **Note:** These are inherent architectural limitations of NetFlow-based collection, shared by all large-scale flow-based datasets. They cannot be recovered post-capture. The trade-off is: NetFlow enables 50x the scale of PCAP-based datasets.
 
 ---
 
@@ -262,6 +262,6 @@ APEX-IDS2026 is a genuine improvement over CIC-IDS2017 in:
 - **Threat diversity** - 64,084 targeted ports, 60 countries, 5 MITRE tactics
 - **Enrichment** - MITRE mapping, GeoIP, threat intelligence, behavioral flags
 
-CIC-IDS2017 remains the only option for research that specifically requires per-packet directional features (fwd/bwd byte counts, packet length variance, subflow statistics). This is a fundamental NetFlow architectural limitation that applies to all large-scale flow-based datasets.
+CIC-IDS2017 remains the only option for research that specifically requires per-packet directional features (fwd/bwd byte counts, packet length variance, subflow statistics). This is an inherent NetFlow architectural limitation that applies to all large-scale flow-based datasets.
 
 For internet-facing IDS research with real-world validity requirements, APEX-IDS2026 is the recommended dataset.
