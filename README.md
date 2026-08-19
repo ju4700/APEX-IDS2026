@@ -1,4 +1,4 @@
-# APEX-IDS2026: A Large-Scale Real-World Network Perimeter Threat Dataset
+﻿# APEX-IDS2026: A Large-Scale Real-World Network Perimeter Threat Dataset
 
 **Honeypot-Verified NetFlow Ground Truth with MITRE ATT&CK Mapping and Zeek Deep Packet Inspection**
 
@@ -59,7 +59,7 @@ Every flow in the dataset is assigned to exactly one of five tiers based on a st
 | **Total flows** | 141,599,853 |
 | **Collection period** | June 21 - August 3, 2026 (44 days) |
 | **Attack_Verified flows** | 42,205,903 |
-| **Golden Subset (Tiers 1+3)** | 69,107,018 flows (1 flat Parquet file) |
+| **High-Confidence Subset (Tiers 1+3)** | 69,107,018 flows (1 flat Parquet file) |
 | **Unique attacker IPs** | 13,638 |
 | **Unique targeted ports** | 64,084 |
 | **Attacker countries** | 60 |
@@ -144,7 +144,7 @@ APEX-IDS2026 captures the authentic threat profile of an internet-facing network
 
 ## 5. ML Baseline Results (Verified, August 2026)
 
-Baselines trained on a 1M-row stratified sample (500k attack + 500k benign) from the 69.1M-row Golden Subset. All results use a **temporal train/test split** (train: June 21 - July 24, test: July 24 - August 3) to prevent any form of temporal leakage.
+Baselines trained on a 1M-row stratified sample (500k attack + 500k benign) from the 69.1M-row High-Confidence Subset. All results use a **temporal train/test split** (train: June 21 - July 24, test: July 24 - August 3) to prevent any form of temporal leakage.
 
 ### Binary Classification (Attack_Verified vs Benign_Verified)
 
@@ -185,7 +185,7 @@ Each labeled flow contains 53 features across 7 categories. Full reference: [DAT
 
 **Computed rates:** `bytes_per_sec` (bytes/duration_s), `packets_per_sec`, `bytes_per_packet`
 
-**Zeek DPI:** `iat_mean`, `iat_std`, `payload_entropy`, `dns_query`, `init_win_bytes_forward`, `zeek_available`
+**Zeek DPI:** `iat_mean`, `iat_std`, `payload_entropy`, `dns_query`, `zeek_available`
 
 **TCP flags (binary):** `flag_syn`, `flag_ack`, `flag_fin`, `flag_rst`, `flag_psh`, `flag_urg`
 
@@ -206,7 +206,7 @@ F:/Apex-IDS/
 │       ├── type=attacks/      <- Tier 1: Attack_Verified flows
 │       ├── type=suspicious/   <- Tier 2+3: Attack_Associated + Unverified
 │       └── type=normal/       <- Tier 4+5: Benign_Verified + Benign_Assumed
-├── golden_subset_ml.parquet   <- 69.1M rows, Tiers 1+3 only (for ML baselines)
+├── apex_ids2026_hc_subset.parquet   <- 69.1M rows, Tiers 1+3 only (for ML baselines)
 ├── labeled/                   <- Source labeled CSVs (5-min window granularity)
 └── metadata/
     ├── dataset_manifest.csv
@@ -219,12 +219,12 @@ F:/Apex-IDS/
 ## 8. Usage Recommendations
 
 ### Binary Classification (Attack vs Normal — Recommended Starting Point)
-Use `Attack_Verified` (Tier 1) as positive class + `Benign_Verified` (Tier 3) as negative class. This is the **Golden Subset** — 0% label noise.
+Use `Attack_Verified` (Tier 1) as positive class + `Benign_Verified` (Tier 3) as negative class. This is the **High-Confidence Subset** — 0% label noise.
 
 ```python
 import duckdb
 df = duckdb.query("""
-    SELECT * FROM read_parquet('golden_subset_ml.parquet')
+    SELECT * FROM read_parquet('apex_ids2026_hc_subset.parquet')
 """).df()
 # Or from the full partitioned dataset:
 df = duckdb.query("""
@@ -278,7 +278,7 @@ df_base = df[FEATURES_LAYER4]
 | 12 ML feature columns added | Applied (2026-08-15) | All 34,997 Parquet files updated |
 | Infinity/NaN values | None | 0 Infinity, 0 NaN in any column |
 | Missing fwd/bwd packet stats | By design | NetFlow architecture: unidirectional flows |
-| TCP window size (partial) | By design | `init_win_bytes_forward` available where `zeek_available=True` |
+| TCP window size | Not available | `init_win_bytes_forward` was not captured by the NetFlow/Zeek pipeline |
 
 ---
 
@@ -292,10 +292,16 @@ df_base = df[FEATURES_LAYER4]
 
 ## 11. Dataset Access
 
-The full dataset (~38.6 GB compressed Parquet, 141,599,853 flows) will be available upon publication:
+The full dataset (~4.15 GB compressed Parquet, 141,599,853 flows) is available on Zenodo in three partition archives:
 
-- **Zenodo (DOI / citation):** Golden Subset (1.36 GB) + all documentation
-- **HuggingFace Datasets (full data):** Complete 34,997-file partitioned dataset with streaming support
+- **Zenodo (DOI / full dataset):** High-Confidence Subset + all partition archives + documentation
+  - `attacks_parquet.zip` — 0.59 GB, 42.2M flows (Attack_Verified)
+  - `suspicious_parquet.zip` — 0.88 GB, 55.8M flows (Attack_Associated + Unverified)
+  - `normal_parquet.zip` — 2.68 GB, 43.6M flows (Benign_*)
+  - `apex_ids2026_hc_subset.parquet` — 1.36 GB, 69.1M flows (Tiers 1+3, ML-ready)
+
+> **Note:** The `labeled/` directory containing the source CSV files (38.6 GB) is available upon request to the research team.
+
 
 For the full academic evaluation and comparison with CIC-IDS2017, NSL-KDD, and UNSW-NB15, see [DATASET_COMPARISON_REPORT.md](DATASET_COMPARISON_REPORT.md).
 

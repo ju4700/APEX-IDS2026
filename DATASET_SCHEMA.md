@@ -1,4 +1,4 @@
-# APEX-IDS2026 — Dataset Schema Reference
+﻿# APEX-IDS2026 — Dataset Schema Reference
 
 > Quick-reference column dictionary for all 53 fields in the Parquet dataset.  
 > Full technical specification: [Data_Card_APEX_IDS2026.md](Data_Card_APEX_IDS2026.md)
@@ -60,7 +60,7 @@ All flags are binary integers (0 or 1), derived from `tcp_flags`.
 
 ---
 
-### Group 5: Zeek Deep Packet Inspection (5 columns)
+### Group 5: Zeek Deep Packet Inspection (4 columns)
 
 > **Important:** Only valid where `zeek_available = True` (50.48% of flows, 24 of 44 days).  
 > Always filter `WHERE zeek_available = True` before using these features in ML models.
@@ -72,7 +72,6 @@ All flags are binary integers (0 or 1), derived from `tcp_flags`.
 | `iat_std` | DOUBLE | ≥ 0 | Standard deviation of inter-arrival time |
 | `payload_entropy` | DOUBLE | 0.0 – 8.0 | Shannon entropy of payload. Values > 7.0 suggest encrypted or obfuscated content |
 | `dns_query` | VARCHAR | — | DNS query domain name, if flow is DNS traffic. NULL otherwise |
-| `init_win_bytes_forward` | DOUBLE | ≥ 0 | Initial TCP window size (bytes). Useful for OS fingerprinting |
 
 ---
 
@@ -135,9 +134,9 @@ import duckdb
 
 con = duckdb.connect()
 
-# Load the Golden Subset (Tiers 1+3) — best for ML baselines
+# Load the High-Confidence Subset (Tiers 1+3) — best for ML baselines
 df = con.execute("""
-    SELECT * FROM read_parquet('golden_subset_ml.parquet')
+    SELECT * FROM read_parquet('apex_ids2026_hc_subset.parquet')
 """).df()
 
 # Load all 141M flows with union schema (for full analysis)
@@ -160,7 +159,7 @@ df = con.execute("""
         CAST(bytes AS BIGINT) as bytes,
         CAST(packets AS BIGINT) as packets,
         duration_s, label
-    FROM read_parquet('golden_subset_ml.parquet')
+    FROM read_parquet('apex_ids2026_hc_subset.parquet')
 """).df()
 ```
 
@@ -174,7 +173,7 @@ df = con.execute("""
 | Computed Rates | 3 |
 | Categorical | 3 |
 | TCP Flags | 6 |
-| Zeek DPI | 6 |
+| Zeek DPI | 5 |
 | Labels & Taxonomy | 11 |
 | Pre-computed ML | 12 |
 | **Total** | **52** |

@@ -1,4 +1,4 @@
-"""
+﻿"""
 train_baseline_models.py
 ========================
 Trains baseline ML models on the APEX-IDS2026 Golden Subset.
@@ -43,7 +43,7 @@ warnings.filterwarnings("ignore")
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 # ── Config ────────────────────────────────────────────────────────────────────
-GOLDEN_SUBSET = "F:/Apex-IDS/golden_subset_ml.parquet"
+GOLDEN_SUBSET = "F:/Apex-IDS/apex_ids2026_hc_subset.parquet"
 RESULTS_DIR = "results"
 RANDOM_STATE = 42
 TEST_SIZE = 0.20          # 80/20 train/test split

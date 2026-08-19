@@ -1,4 +1,4 @@
-# APEX-IDS2026 vs CIC-IDS2017: Comprehensive Comparison Report
+﻿# APEX-IDS2026 vs CIC-IDS2017: Comprehensive Comparison Report
 
 > **All APEX-IDS2026 statistics verified via live DuckDB queries on August 19, 2026.**  
 > CIC-IDS2017 statistics sourced from published literature and confirmed via dataset inspection.
@@ -143,7 +143,6 @@ These are lab-generated attacks with no real attacker infrastructure. There is n
 |---|---|---|
 | Payload entropy | `payload_entropy` | Shannon entropy (0-8) from Zeek |
 | DNS correlation | `dns_query` | Extracted DNS queries per flow |
-| TCP window size | `init_win_bytes_forward` | Initial TCP window (Zeek, 50.48% coverage) |
 | Zeek availability flag | `zeek_available` | Explicit DPI coverage flag |
 | MITRE technique | `mitre_technique` | ATT&CK technique per flow |
 | MITRE tactic | `mitre_tactic` | ATT&CK tactic per flow |
@@ -232,7 +231,7 @@ These are lab-generated attacks with no real attacker infrastructure. There is n
 
 ## 9. ML Baseline Results (APEX-IDS2026)
 
-Baselines trained on the Golden Subset (69.1M rows, Tiers 1+3) with a temporal train/test split (train: June 21 - July 24; test: July 24 - August 3).
+Baselines trained on the High-Confidence Subset (69.1M rows, Tiers 1+3) with a temporal train/test split (train: June 21 - July 24; test: July 24 - August 3).
 
 ### Binary Classification (Attack_Verified vs Benign_Verified)
 

@@ -1,4 +1,4 @@
-<center>
+﻿<center>
 
 # APEX-IDS2026: A Large-Scale Real-World Network Perimeter Threat Dataset
 **Research Data Card & Technical Specification**
@@ -44,7 +44,7 @@ A parallel Zeek Network Analysis Framework engine runs on the same interface via
 - Inter-arrival time statistics (`iat_mean`, `iat_std`)
 - Shannon payload entropy (`payload_entropy`)
 - DNS query extraction (`dns_query`)
-- Initial TCP window size (`init_win_bytes_forward`)
+- DNS query extraction (`dns_query`)
 
 Zeek data is merged deterministically using a NAT-immune key: `(src_ip, dst_port, protocol, 5min_bucket)`.
 
@@ -129,7 +129,7 @@ APEX-IDS2026 captures the authentic threat profile of an internet-facing network
 
 ## 4. ML Baseline Results (Verified, August 2026)
 
-All baselines use a **temporal train/test split** (train: June 21 - July 24; test: July 24 - August 3) to simulate real deployment conditions. Models trained on 800k rows (400k per class from the 69.1M-row Golden Subset).
+All baselines use a **temporal train/test split** (train: June 21 - July 24; test: July 24 - August 3) to simulate real deployment conditions. Models trained on 800k rows (400k per class from the 69.1M-row High-Confidence Subset).
 
 ### Binary Classification (Attack_Verified vs Benign_Verified)
 
@@ -202,9 +202,11 @@ The three most important features for binary classification are `log_bytes` (25.
 | `flag_psh` | 0/1 | PSH flag set |
 | `flag_urg` | 0/1 | URG flag set |
 
-### 5.5 Zeek Deep Packet Inspection Features
-
-Available where `zeek_available = True` (50.48% of flows, 24 of 44 days).
+### 5.5 Zeek Deep Packet Inspection
+> **Important:** Only valid where `zeek_available = True` (50.48% of flows, 24 of 44 days).  
+> Zeek enrichment was most effective for **attack flows**: 181,578 attack flows have non-zero payload entropy and 15.7M have IAT data.  
+> For **benign flows**, `zeek_available = True` indicates the sensor was operational during that window, but the Zeek-to-NetFlow merge produced no enrichment data (0 benign flows have payload_entropy > 0). This is because the Zeek conn.log matched attack-directed flows specifically.  
+> **Practical guidance:** Use Zeek features only when `zeek_available = True` AND `label = 'Attack_Verified'`, or when specifically studying attack flow characterization.
 
 | Column | Type | Description |
 |---|---|---|
@@ -213,7 +215,6 @@ Available where `zeek_available = True` (50.48% of flows, 24 of 44 days).
 | `iat_std` | DOUBLE | Standard deviation of IAT |
 | `payload_entropy` | DOUBLE | Shannon entropy (0-8); >7.0 suggests encrypted/obfuscated payload |
 | `dns_query` | VARCHAR | DNS query string if DNS traffic detected |
-| `init_win_bytes_forward` | DOUBLE | Initial TCP window size — useful for OS fingerprinting |
 
 ### 5.6 Label and Taxonomy Columns
 
@@ -305,11 +306,24 @@ For flows processed during rate-limiting periods, `threat_intel_score` and `coun
 | **Query engine** | DuckDB (recommended) — handles 141.6M flows with zero memory pressure |
 | **Partition scheme** | `date=YYYY-MM-DD / type={attacks,suspicious,normal}` |
 | **Total Parquet files** | 34,997 |
-| **Total compressed size** | ~38.6 GB |
-| **Golden Subset** | `golden_subset_ml.parquet` — 69.1M rows, 1.36 GB, Tiers 1+3 only |
+| **Total compressed size** | ~4.15 GB (Parquet/Snappy) |
+| **High-Confidence Subset** | `apex_ids2026_hc_subset.parquet` — 69.1M rows, 1.36 GB, Tiers 1+3 only |
+
+### Partition Size Breakdown
+
+| Archive | Size | Files | Flows | Contents |
+|---|---|---|---|---|
+| `attacks_parquet.zip` | 0.59 GB | 11,649 | 42.2M | Attack_Verified (Tier 1) |
+| `suspicious_parquet.zip` | 0.88 GB | 11,693 | 55.8M | Attack_Associated + Unverified (Tiers 2+5) |
+| `normal_parquet.zip` | 2.68 GB | 11,655 | 43.6M | Benign_Verified + Benign_Assumed (Tiers 3+4) |
+| `apex_ids2026_hc_subset.parquet` | 1.36 GB | 1 | 69.1M | Tiers 1+3 only — recommended for ML |
+
+> **Note on partition sizes:** The attacks partition (42.2M flows, 0.59 GB) compresses to 14 bytes/row because 95.5% of attack flows are identical SYN scan packets. The normal partition (43.6M flows, 2.68 GB) compresses to 65 bytes/row due to greater traffic diversity. Both are valid — Parquet's columnar compression behaves this way for highly repetitive data.
+
+> **Note on source data:** The `labeled/` source CSV directory (38.6 GB, 12,208 files) contains the raw 5-minute labeled CSVs before Parquet conversion. These are available upon request.
 
 ```python
-# Minimal usage example
+# Minimal usage example — query across full partitioned dataset
 import duckdb
 df = duckdb.query("""
     SELECT * FROM read_parquet('path/to/parquet_dataset/*/*/*.parquet', 
@@ -319,6 +333,7 @@ df = duckdb.query("""
     LIMIT 100000
 """).df()
 ```
+
 
 ---
 
@@ -342,7 +357,7 @@ df = duckdb.query("""
 | 2026-08-12 | `bytes_per_sec` corrected from bits/s -> bytes/s | 23,342 files (all attack+suspicious) |
 | 2026-08-15 | 12 pre-computed ML feature columns added | All 34,997 files, 0 errors |
 | 2026-08-15 | IP anonymization (SHA256[:12]) applied to all src_ip / dst_ip | All 34,997 files, 0 errors |
-| 2026-08-19 | Golden Subset extracted (Tiers 1+3) | 69,107,018 rows, 1.36 GB |
+| 2026-08-19 | High-Confidence Subset extracted (Tiers 1+3) | 69,107,018 rows, 1.36 GB |
 
 <br>
 
