@@ -1,5 +1,7 @@
 # APEX-IDS2026: A Large-Scale Real-World Network Perimeter Threat Dataset
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22013914.svg)](https://doi.org/10.5281/zenodo.22013914)
+
 **Honeypot-Verified NetFlow Ground Truth with MITRE ATT&CK Mapping and Zeek Deep Packet Inspection**
 
 > **All statistics in this document are verified from live DuckDB queries on the actual dataset files (2026-08-19).**
@@ -317,3 +319,4 @@ For the full academic evaluation and comparison with CIC-IDS2017, NSL-KDD, and U
 - **Honeypot:** Deliberately vulnerable host on ISP network (IP anonymized in released data)
 - **Zeek DPI:** TZSP mirror on same interface
 - **Pipeline schedule:** `*/6 * * * *` — correlation runs every 6 minutes
+
