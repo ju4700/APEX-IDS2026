@@ -5,7 +5,7 @@ __pycache__/
 *.pyd
 
 # Zenodo upload staging folder (contains large Parquet file)
-zenodo_upload/
+Zenodo/
 
 
 # Virtual environments
@@ -19,8 +19,6 @@ venv/
 *.pem
 
 # Large data files - hosted separately
-Machine Learnign/data/
-Machine Learnign/data/parquet/**
 Machine Learnign/parquet/**
 
 # Build artifacts
